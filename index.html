@@ -22,6 +22,12 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Leaflet (for COO Map tab) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); min-height: 100vh; color: #e2e8f0; }
@@ -2085,6 +2091,1131 @@ body, .header, .card, .stat-card, .nav-tabs, .nav-tab, .btn, .project-select,
               border-color var(--rx-dur) var(--rx-ease),
               box-shadow var(--rx-dur) var(--rx-ease) !important;
 }
+
+/* ===================================================================
+   COO Map tab — Leaflet styling matched to dashboard dark theme
+   =================================================================== */
+#cooMap { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.leaflet-container { background: #0f172a !important; outline: none; }
+.leaflet-control-zoom a {
+  background: rgba(30,41,59,0.95) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(51,65,85,0.6) !important;
+  backdrop-filter: blur(8px);
+}
+.leaflet-control-zoom a:hover { background: rgba(20,184,166,0.2) !important; color: #2dd4bf !important; }
+.leaflet-control-attribution {
+  background: rgba(15,23,42,0.85) !important;
+  color: #64748b !important;
+  font-size: 10px;
+  border-radius: 6px 0 0 0;
+}
+.leaflet-control-attribution a { color: #14b8a6 !important; }
+
+/* Custom marker (color-coded by status) */
+.coo-marker {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.coo-marker:hover { transform: scale(1.25); }
+.coo-marker.delivered  { background: #10b981; box-shadow: 0 0 0 2px rgba(0,0,0,0.4), 0 0 12px rgba(16,185,129,0.7); }
+.coo-marker.in-transit { background: #fbbf24; box-shadow: 0 0 0 2px rgba(0,0,0,0.4), 0 0 12px rgba(251,191,36,0.7); }
+.coo-marker.delayed    { background: #ef4444; box-shadow: 0 0 0 2px rgba(0,0,0,0.4), 0 0 12px rgba(239,68,68,0.7); }
+.coo-marker.pending    { background: #64748b; box-shadow: 0 0 0 2px rgba(0,0,0,0.4); }
+
+/* Project Site marker (Salak, Sukabumi) */
+.coo-site-marker {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #14b8a6, #06b6d4);
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.4), 0 0 18px rgba(20,184,166,0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+.coo-site-marker svg { transform: rotate(45deg); width: 14px; height: 14px; color: #fff; }
+
+/* Cluster styling */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large { background: rgba(20,184,166,0.3) !important; }
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background: rgba(13,148,136,0.85) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border: 1px solid rgba(20,184,166,0.6);
+}
+
+/* Popup card — dark themed */
+.leaflet-popup-content-wrapper {
+  background: linear-gradient(135deg, #1e293b, rgba(30,41,59,0.95)) !important;
+  color: #e2e8f0 !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(51,65,85,0.6);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
+  backdrop-filter: blur(10px);
+}
+.leaflet-popup-content { margin: 0.85rem 1rem !important; min-width: 230px; line-height: 1.5; }
+.leaflet-popup-tip { background: #1e293b !important; border: 1px solid rgba(51,65,85,0.6); }
+.leaflet-popup-close-button { color: #94a3b8 !important; padding: 6px 8px 0 0 !important; }
+.leaflet-popup-close-button:hover { color: #fff !important; }
+
+.coo-popup-title {
+  font-size: 0.95rem; font-weight: 600; color: #2dd4bf;
+  margin-bottom: 0.4rem; padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(51,65,85,0.5);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.coo-popup-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.78rem; padding: 0.18rem 0; }
+.coo-popup-row > span:first-child { color: #94a3b8; }
+.coo-popup-row > span:last-child { color: #e2e8f0; font-weight: 500; text-align: right; max-width: 60%; word-break: break-word; }
+.coo-popup-status {
+  display: inline-flex; align-items: center; padding: 2px 8px;
+  border-radius: 999px; font-size: 0.7rem; font-weight: 600;
+}
+
+/* Light theme overrides for COO Map */
+html[data-theme="light"] .leaflet-container { background: #e0f2fe !important; }
+html[data-theme="light"] .leaflet-popup-content-wrapper {
+  background: #ffffff !important; color: #1e293b !important;
+  border: 1px solid #e2e8f0;
+}
+html[data-theme="light"] .leaflet-popup-tip { background: #ffffff !important; border: 1px solid #e2e8f0; }
+html[data-theme="light"] .coo-popup-title { color: #0d9488; border-bottom-color: #e2e8f0; }
+html[data-theme="light"] .coo-popup-row > span:first-child { color: #64748b; }
+html[data-theme="light"] .coo-popup-row > span:last-child { color: #1e293b; }
+html[data-theme="light"] .leaflet-control-zoom a { background: #fff !important; color: #334155 !important; border-color: #e2e8f0 !important; }
+
+/* Responsive: stack map and summary on smaller screens */
+@media (max-width: 980px) {
+  #cooMapLayout { grid-template-columns: 1fr !important; }
+  #cooMap { height: 420px !important; }
+}
+
+
+/* ============================================================================
+   COASTAL RETREAT REDESIGN LAYER
+   Last-injected stylesheet override. Re-themes the entire app to a calm,
+   coastal palette while tightening density on toggles, tabs, filters, and
+   chip-style controls. Pure CSS — no HTML/JS structural changes.
+
+   Palette:
+     #335765  Deep Teal Blue       — primary surface anchor / dark text on light
+     #74A8A4  Sage Teal            — primary accent (replaces electric teal)
+     #B6D9E0  Soft Sky Blue        — info / light accent
+     #DBE2DC  Pale Mist            — light surface / dividers on cream
+     #7F543D  Warm Brown           — warm contrast / warning highlight
+   ============================================================================ */
+
+/* --------------------------------------------------------------------------
+   1. CORE TOKEN REMAP — Dark Theme (default)
+   Re-theme the existing --rx-* design system to coastal tones. Because the
+   variables are consumed by hundreds of rules already, remapping them here
+   propagates everywhere automatically.
+   -------------------------------------------------------------------------- */
+:root,
+html[data-theme="dark"] {
+  /* Surfaces — deep coastal navy gradient instead of slate-black */
+  --rx-bg:            #1a2b35 !important;   /* page background */
+  --rx-bg-elev:       #21384a !important;   /* slightly elevated panel */
+  --rx-surface:       #2a4555 !important;   /* card surface */
+  --rx-surface-2:     #335765 !important;   /* card surface, raised */
+  --rx-surface-raise: #3d6878 !important;   /* highest elevation */
+
+  /* Hairlines — sage tinted instead of pure white alpha */
+  --rx-hairline:      rgba(116, 168, 164, 0.15) !important;
+  --rx-hairline-hi:   rgba(116, 168, 164, 0.28) !important;
+  --rx-hairline-lo:   rgba(116, 168, 164, 0.08) !important;
+
+  /* Ink — soft pale-mist instead of pure white for less harshness */
+  --rx-ink:           #DBE2DC !important;
+  --rx-ink-soft:      #B6D9E0 !important;
+  --rx-ink-mute:      #91afb5 !important;
+  --rx-ink-faint:     #5e7d85 !important;
+
+  /* Accent — Sage Teal (#74A8A4), the calm coastal hero color */
+  --rx-accent:        #74A8A4 !important;
+  --rx-accent-ink:    #8fbcb8 !important;
+  --rx-accent-soft:   rgba(116, 168, 164, 0.10) !important;
+  --rx-accent-line:   rgba(116, 168, 164, 0.32) !important;
+  --rx-accent-glow:   rgba(116, 168, 164, 0.20) !important;
+
+  /* Status — semantic colors retained but harmonized to palette tone */
+  --rx-ok:            #8fbf9f !important;   /* sage-leaning green */
+  --rx-warn:          #c9a47a !important;   /* warm sand */
+  --rx-crit:          #c97a6c !important;   /* muted brick red */
+  --rx-info:          #B6D9E0 !important;   /* sky-blue info */
+
+  /* Coastal palette tokens (new) — referenced by overrides below */
+  --coast-deep:       #335765;
+  --coast-sage:       #74A8A4;
+  --coast-sky:        #B6D9E0;
+  --coast-mist:       #DBE2DC;
+  --coast-brown:      #7F543D;
+}
+
+/* --------------------------------------------------------------------------
+   2. CORE TOKEN REMAP — Light Theme
+   Light variant: cream background with deep-teal ink and sage accents.
+   -------------------------------------------------------------------------- */
+html[data-theme="light"] {
+  --rx-bg:            #f4f6f3 !important;
+  --rx-bg-elev:       #fbfcfa !important;
+  --rx-surface:       #ffffff !important;
+  --rx-surface-2:     #f4f6f3 !important;
+  --rx-surface-raise: #ffffff !important;
+
+  --rx-hairline:      rgba(51, 87, 101, 0.10) !important;
+  --rx-hairline-hi:   rgba(51, 87, 101, 0.18) !important;
+  --rx-hairline-lo:   rgba(51, 87, 101, 0.05) !important;
+
+  --rx-ink:           #1f3742 !important;
+  --rx-ink-soft:      #335765 !important;
+  --rx-ink-mute:      #5e7d85 !important;
+  --rx-ink-faint:     #91afb5 !important;
+
+  --rx-accent:        #335765 !important;       /* deep teal as accent on cream */
+  --rx-accent-ink:    #335765 !important;
+  --rx-accent-soft:   rgba(51, 87, 101, 0.08) !important;
+  --rx-accent-line:   rgba(51, 87, 101, 0.25) !important;
+  --rx-accent-glow:   rgba(51, 87, 101, 0.14) !important;
+
+  --rx-ok:            #5a8c6f !important;
+  --rx-warn:          #a17945 !important;
+  --rx-crit:          #a85546 !important;
+  --rx-info:          #4a7a8a !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. PAGE BODY & GLOBAL TYPOGRAPHY
+   -------------------------------------------------------------------------- */
+body {
+  background: linear-gradient(160deg, #1a2b35 0%, #21384a 50%, #1a2b35 100%) !important;
+  color: var(--rx-ink) !important;
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.005em;
+}
+html[data-theme="light"] body {
+  background: linear-gradient(160deg, #f4f6f3 0%, #ebf0ec 50%, #f4f6f3 100%) !important;
+  color: var(--rx-ink) !important;
+}
+
+/* Sharper, more confident headings */
+h1, h2, h3, .page-title, .card-title, .modal-title {
+  letter-spacing: -0.018em !important;
+  text-wrap: balance;
+}
+
+/* Tabular numbers for data-heavy displays */
+.stat-value, .data-table td, .kpi-value, .badge { font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   4. HEADER — denser, calmer
+   -------------------------------------------------------------------------- */
+.header {
+  background: linear-gradient(180deg, rgba(51, 87, 101, 0.95), rgba(33, 56, 74, 0.95)) !important;
+  backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid var(--rx-hairline) !important;
+  padding: 0.75rem 1.25rem !important;
+}
+html[data-theme="light"] .header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(244,246,243,0.92)) !important;
+}
+.header-content { max-width: 1800px; margin: 0 auto; }
+.header-top { margin-bottom: 0.75rem !important; gap: 0.75rem !important; }
+.logo-section { gap: 0.75rem !important; }
+.logo-icon {
+  width: 38px !important; height: 38px !important; border-radius: 10px !important;
+  background: linear-gradient(135deg, var(--coast-sage), var(--coast-sky)) !important;
+  box-shadow: 0 3px 10px rgba(116, 168, 164, 0.30), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+}
+.logo-icon svg { width: 20px !important; height: 20px !important; color: var(--coast-deep) !important; }
+.logo-text h1 { font-size: 1.1rem !important; font-weight: 600 !important; letter-spacing: -0.02em !important; color: var(--rx-ink) !important; }
+.logo-text p { font-size: 0.7rem !important; color: var(--rx-ink-mute) !important; letter-spacing: 0.02em; }
+
+/* Project select — denser */
+.project-select {
+  background: rgba(116, 168, 164, 0.08) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+  color: var(--rx-ink) !important;
+  padding: 0.45rem 2.25rem 0.45rem 0.85rem !important;
+  border-radius: 9px !important;
+  font-size: 0.825rem !important;
+  min-width: 240px !important;
+}
+.project-select:focus { border-color: var(--coast-sage) !important; box-shadow: 0 0 0 3px var(--rx-accent-soft) !important; }
+
+/* --------------------------------------------------------------------------
+   5. NAV TABS — much tighter pill row, no oversized gaps
+   -------------------------------------------------------------------------- */
+.nav-tabs {
+  gap: 0.125rem !important;
+  padding: 0.25rem !important;
+  background: rgba(116, 168, 164, 0.06);
+  border: 1px solid var(--rx-hairline);
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  flex-wrap: wrap;
+}
+html[data-theme="light"] .nav-tabs { background: rgba(51, 87, 101, 0.04); }
+
+.nav-tab {
+  padding: 0.4rem 0.75rem !important;
+  border-radius: 7px !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.005em !important;
+  color: var(--rx-ink-soft) !important;
+  background: transparent !important;
+  gap: 0.4rem !important;
+  border: 1px solid transparent !important;
+  transition: background 180ms ease, color 180ms ease !important;
+}
+.nav-tab:hover {
+  background: rgba(116, 168, 164, 0.10) !important;
+  color: var(--rx-ink) !important;
+}
+.nav-tab.active {
+  background: var(--coast-sage) !important;
+  color: #1a2b35 !important;
+  border-color: var(--coast-sage) !important;
+  box-shadow: 0 2px 8px rgba(116, 168, 164, 0.35) !important;
+}
+html[data-theme="light"] .nav-tab.active {
+  background: var(--coast-deep) !important;
+  color: var(--coast-mist) !important;
+  border-color: var(--coast-deep) !important;
+}
+.nav-tab svg { width: 14px !important; height: 14px !important; opacity: 0.9; }
+.nav-tab.active svg { color: inherit !important; opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   6. BUTTONS — smaller default size, coastal accent
+   -------------------------------------------------------------------------- */
+.btn {
+  padding: 0.45rem 0.95rem !important;
+  border-radius: 8px !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  gap: 0.4rem !important;
+  letter-spacing: -0.003em;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease !important;
+}
+.btn:active { transform: translateY(1px); }
+.btn svg { width: 14px !important; height: 14px !important; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--coast-sage), #5e9591) !important;
+  color: #1a2b35 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 3px 10px rgba(116, 168, 164, 0.28) !important;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #82b6b1, var(--coast-sage)) !important;
+  box-shadow: 0 5px 14px rgba(116, 168, 164, 0.42) !important;
+}
+html[data-theme="light"] .btn-primary {
+  background: var(--coast-deep) !important;
+  color: var(--coast-mist) !important;
+  box-shadow: 0 3px 10px rgba(51, 87, 101, 0.28) !important;
+}
+html[data-theme="light"] .btn-primary:hover { background: #2a4555 !important; }
+
+.btn-secondary {
+  background: rgba(116, 168, 164, 0.12) !important;
+  color: var(--rx-ink) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+}
+.btn-secondary:hover {
+  background: rgba(116, 168, 164, 0.20) !important;
+  border-color: var(--rx-accent-line) !important;
+}
+
+.btn-icon { padding: 0.35rem !important; border-radius: 7px !important; }
+.btn-icon:hover { background: var(--rx-accent-soft) !important; color: var(--coast-sage) !important; }
+
+/* Save button (inline edit) */
+.ie-save-btn {
+  background: linear-gradient(135deg, var(--coast-sage), #5e9591) !important;
+  color: #1a2b35 !important;
+  font-weight: 600 !important;
+  padding: 0.4rem 1.1rem !important;
+  border-radius: 8px !important;
+  font-size: 0.8rem !important;
+  box-shadow: 0 3px 10px rgba(116, 168, 164, 0.28) !important;
+}
+.ie-save-btn:hover { background: linear-gradient(135deg, #82b6b1, var(--coast-sage)) !important; }
+
+/* --------------------------------------------------------------------------
+   7. FORM CONTROLS — denser filters, search, inputs
+   -------------------------------------------------------------------------- */
+.search-input input,
+.filter-select,
+.form-input,
+.form-select,
+.form-textarea,
+.scurve-display,
+.ie-field input,
+.ie-field select,
+.ie-field textarea {
+  background: rgba(26, 43, 53, 0.55) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+  color: var(--rx-ink) !important;
+  border-radius: 8px !important;
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.8rem !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease !important;
+}
+html[data-theme="light"] .search-input input,
+html[data-theme="light"] .filter-select,
+html[data-theme="light"] .form-input,
+html[data-theme="light"] .form-select,
+html[data-theme="light"] .form-textarea,
+html[data-theme="light"] .scurve-display,
+html[data-theme="light"] .ie-field input,
+html[data-theme="light"] .ie-field select,
+html[data-theme="light"] .ie-field textarea {
+  background: #ffffff !important;
+  border-color: rgba(51, 87, 101, 0.18) !important;
+  color: var(--rx-ink) !important;
+}
+.search-input input { padding-left: 2.25rem !important; width: 200px !important; }
+.search-input input:focus,
+.filter-select:focus,
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus,
+.ie-field input:focus,
+.ie-field select:focus,
+.ie-field textarea:focus {
+  outline: none !important;
+  border-color: var(--coast-sage) !important;
+  box-shadow: 0 0 0 3px var(--rx-accent-soft) !important;
+}
+.search-input input::placeholder,
+.form-input::placeholder,
+.form-textarea::placeholder { color: var(--rx-ink-faint) !important; }
+.search-input svg { width: 15px !important; height: 15px !important; left: 0.65rem !important; color: var(--rx-ink-mute) !important; }
+
+.form-checkbox input { accent-color: var(--coast-sage) !important; width: 16px !important; height: 16px !important; }
+
+/* --------------------------------------------------------------------------
+   8. CARDS & STAT CARDS — softer, denser
+   -------------------------------------------------------------------------- */
+.card {
+  background: linear-gradient(180deg, rgba(42, 69, 85, 0.85), rgba(33, 56, 74, 0.75)) !important;
+  border: 1px solid var(--rx-hairline) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -12px rgba(0,0,0,0.35) !important;
+}
+html[data-theme="light"] .card {
+  background: #ffffff !important;
+  border-color: rgba(51, 87, 101, 0.10) !important;
+  box-shadow: 0 1px 2px rgba(51, 87, 101, 0.06), 0 4px 14px -8px rgba(51, 87, 101, 0.10) !important;
+}
+.card-header { padding: 0.85rem 1rem !important; border-bottom: 1px solid var(--rx-hairline) !important; }
+.card-title { font-size: 0.95rem !important; font-weight: 600 !important; color: var(--rx-ink) !important; letter-spacing: -0.018em !important; }
+.card-body { padding: 1rem !important; }
+
+.stats-grid { gap: 0.75rem !important; margin-bottom: 1rem !important; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important; }
+.stat-card {
+  background: linear-gradient(180deg, rgba(42, 69, 85, 0.85), rgba(33, 56, 74, 0.75)) !important;
+  border: 1px solid var(--rx-hairline) !important;
+  border-radius: 12px !important;
+  padding: 0.85rem 1rem !important;
+  transition: transform 220ms ease, border-color 220ms ease !important;
+}
+html[data-theme="light"] .stat-card { background: #ffffff !important; border-color: rgba(51, 87, 101, 0.10) !important; }
+.stat-card:hover { transform: translateY(-1px); border-color: var(--rx-accent-line) !important; }
+.stat-label { font-size: 0.72rem !important; color: var(--rx-ink-mute) !important; letter-spacing: 0.02em; text-transform: uppercase; font-weight: 500; }
+.stat-value { font-size: 1.65rem !important; font-weight: 600 !important; color: var(--rx-ink) !important; letter-spacing: -0.025em !important; line-height: 1.1 !important; margin-top: 0.15rem; }
+.stat-note { font-size: 0.68rem !important; color: var(--rx-ink-faint) !important; padding-top: 0.4rem !important; margin-top: 0.4rem !important; border-top: 1px solid var(--rx-hairline-lo) !important; line-height: 1.35; }
+.stat-icon { width: 38px !important; height: 38px !important; border-radius: 9px !important; }
+.stat-icon svg { width: 18px !important; height: 18px !important; }
+.stat-icon.blue    { background: rgba(182, 217, 224, 0.15) !important; }
+.stat-icon.blue svg    { color: var(--coast-sky) !important; }
+.stat-icon.emerald { background: rgba(143, 191, 159, 0.15) !important; }
+.stat-icon.emerald svg { color: var(--rx-ok) !important; }
+.stat-icon.red     { background: rgba(201, 122, 108, 0.15) !important; }
+.stat-icon.red svg     { color: var(--rx-crit) !important; }
+.stat-icon.teal    { background: rgba(116, 168, 164, 0.15) !important; }
+.stat-icon.teal svg    { color: var(--coast-sage) !important; }
+
+/* --------------------------------------------------------------------------
+   9. CHARTS & FILTER BAR
+   -------------------------------------------------------------------------- */
+.charts-grid { gap: 1rem !important; margin-bottom: 1rem !important; }
+.chart-container { height: 240px !important; }
+
+.filter-bar { gap: 0.5rem !important; }
+.filter-group { gap: 0.5rem !important; }
+.filter-select { min-width: 130px !important; }
+
+/* --------------------------------------------------------------------------
+   10. DATA TABLES — denser rows, calmer hover
+   -------------------------------------------------------------------------- */
+.data-table th {
+  padding: 0.55rem 0.85rem !important;
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  color: var(--rx-ink-mute) !important;
+  letter-spacing: 0.05em !important;
+  background: rgba(26, 43, 53, 0.45) !important;
+  border-bottom: 1px solid var(--rx-hairline-hi) !important;
+}
+html[data-theme="light"] .data-table th { background: rgba(51, 87, 101, 0.04) !important; color: var(--rx-ink-soft) !important; }
+.data-table td {
+  padding: 0.55rem 0.85rem !important;
+  border-bottom: 1px solid var(--rx-hairline-lo) !important;
+  font-size: 0.815rem !important;
+  color: var(--rx-ink-soft) !important;
+}
+.data-table tr:hover { background: rgba(116, 168, 164, 0.06) !important; }
+.data-table tr:hover td { color: var(--rx-ink) !important; }
+
+/* --------------------------------------------------------------------------
+   11. BADGES — square-cornered, denser, harmonized colors
+   -------------------------------------------------------------------------- */
+.badge {
+  padding: 0.18rem 0.5rem !important;
+  border-radius: 5px !important;
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.015em !important;
+  border: 1px solid !important;
+}
+.badge-success { background: rgba(143, 191, 159, 0.15) !important; color: var(--rx-ok) !important;   border-color: rgba(143, 191, 159, 0.32) !important; }
+.badge-warning { background: rgba(201, 164, 122, 0.15) !important; color: var(--rx-warn) !important; border-color: rgba(201, 164, 122, 0.32) !important; }
+.badge-danger  { background: rgba(201, 122, 108, 0.15) !important; color: var(--rx-crit) !important; border-color: rgba(201, 122, 108, 0.32) !important; }
+.badge-info    { background: rgba(182, 217, 224, 0.15) !important; color: var(--coast-sky) !important; border-color: rgba(182, 217, 224, 0.30) !important; }
+.badge-default { background: rgba(145, 175, 181, 0.15) !important; color: var(--rx-ink-mute) !important; border-color: rgba(145, 175, 181, 0.30) !important; }
+html[data-theme="light"] .badge-info { color: #4a7a8a !important; border-color: rgba(74, 122, 138, 0.32) !important; }
+
+/* --------------------------------------------------------------------------
+   12. PROGRESS BARS
+   -------------------------------------------------------------------------- */
+.progress-track { background: rgba(116, 168, 164, 0.12) !important; height: 6px !important; border-radius: 3px !important; }
+html[data-theme="light"] .progress-track { background: rgba(51, 87, 101, 0.10) !important; }
+
+/* --------------------------------------------------------------------------
+   13. INLINE EDIT PANEL (modal-style overlay)
+   -------------------------------------------------------------------------- */
+.inline-edit-panel {
+  background: linear-gradient(180deg, #2a4555, #1f3742) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 25px 60px -20px rgba(0,0,0,0.55) !important;
+  max-width: 660px !important;
+}
+html[data-theme="light"] .inline-edit-panel { background: #ffffff !important; border-color: rgba(51, 87, 101, 0.12) !important; }
+.ie-section-title {
+  font-size: 0.7rem !important;
+  color: var(--coast-sage) !important;
+  letter-spacing: 0.06em !important;
+  margin-bottom: 0.5rem !important;
+}
+html[data-theme="light"] .ie-section-title { color: var(--coast-deep) !important; }
+
+/* --------------------------------------------------------------------------
+   14. MODAL OVERLAYS
+   -------------------------------------------------------------------------- */
+.modal {
+  background: linear-gradient(180deg, #2a4555, #1f3742) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+  border-radius: 14px !important;
+}
+html[data-theme="light"] .modal { background: #ffffff !important; border-color: rgba(51, 87, 101, 0.10) !important; }
+.modal-overlay { background: rgba(15, 28, 38, 0.65) !important; backdrop-filter: blur(4px); }
+
+/* --------------------------------------------------------------------------
+   15. BACK BUTTON + DROPDOWN MENUS
+   -------------------------------------------------------------------------- */
+.btn-back:hover { background: rgba(116, 168, 164, 0.12) !important; color: var(--coast-sage) !important; border-color: var(--rx-accent-line) !important; }
+
+.export-dropdown-content,
+.data-dropdown-content,
+.sync-dropdown-content {
+  background: linear-gradient(180deg, #2a4555, #1f3742) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.45) !important;
+}
+html[data-theme="light"] .export-dropdown-content,
+html[data-theme="light"] .data-dropdown-content,
+html[data-theme="light"] .sync-dropdown-content {
+  background: #ffffff !important;
+  border-color: rgba(51, 87, 101, 0.10) !important;
+  box-shadow: 0 12px 32px -8px rgba(51, 87, 101, 0.18) !important;
+}
+
+/* --------------------------------------------------------------------------
+   16. THEME TOGGLE — denser, more refined
+   -------------------------------------------------------------------------- */
+.rx-theme-toggle {
+  width: 38px !important; height: 38px !important;
+  border-radius: 9px !important;
+  background: rgba(116, 168, 164, 0.10) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+  transition: background 180ms ease, border-color 180ms ease !important;
+}
+.rx-theme-toggle:hover { background: rgba(116, 168, 164, 0.18) !important; border-color: var(--rx-accent-line) !important; }
+
+/* --------------------------------------------------------------------------
+   17. HARDCODED LEGACY COLORS — direct overrides for inline `style=` and
+   selectors using literal hex codes that escape the CSS-variable system.
+   These cover spots where the original CSS used #14b8a6 / #2dd4bf / #06b6d4
+   directly without going through tokens.
+   -------------------------------------------------------------------------- */
+
+/* Accent-colored helper text & inline-styled spans */
+[style*="color: #14b8a6"],
+[style*="color:#14b8a6"],
+[style*="color: #2dd4bf"],
+[style*="color:#2dd4bf"],
+[style*="color: #5eead4"],
+[style*="color:#5eead4"] { color: var(--coast-sage) !important; }
+
+[style*="color: #06b6d4"],
+[style*="color:#06b6d4"],
+[style*="color: #22d3ee"],
+[style*="color:#22d3ee"] { color: var(--coast-sky) !important; }
+
+[style*="color: #f87171"],
+[style*="color:#f87171"],
+[style*="color: #fca5a5"],
+[style*="color:#fca5a5"] { color: var(--rx-crit) !important; }
+
+[style*="color: #fbbf24"],
+[style*="color:#fbbf24"],
+[style*="color: #fcd34d"],
+[style*="color:#fcd34d"] { color: var(--rx-warn) !important; }
+
+[style*="color: #34d399"],
+[style*="color:#34d399"],
+[style*="color: #6ee7b7"],
+[style*="color:#6ee7b7"] { color: var(--rx-ok) !important; }
+
+[style*="color: #94a3b8"],
+[style*="color:#94a3b8"],
+[style*="color: #64748b"],
+[style*="color:#64748b"] { color: var(--rx-ink-mute) !important; }
+
+/* Inline border colors */
+[style*="border-color: rgba(20,184,166"],
+[style*="border-color:rgba(20,184,166"],
+[style*="border-color: #14b8a6"] { border-color: var(--rx-accent-line) !important; }
+
+/* --------------------------------------------------------------------------
+   18. COO MAP TAB — re-tone markers and Leaflet popup to coastal
+   -------------------------------------------------------------------------- */
+.leaflet-container { background: #1a2b35 !important; }
+html[data-theme="light"] .leaflet-container { background: #DBE2DC !important; }
+
+.leaflet-popup-content-wrapper {
+  background: linear-gradient(180deg, #2a4555, #1f3742) !important;
+  color: var(--rx-ink) !important;
+  border: 1px solid var(--rx-hairline-hi) !important;
+}
+.leaflet-popup-tip { background: #2a4555 !important; border-color: var(--rx-hairline-hi) !important; }
+html[data-theme="light"] .leaflet-popup-content-wrapper { background: #ffffff !important; color: var(--rx-ink) !important; border-color: rgba(51,87,101,0.12) !important; }
+html[data-theme="light"] .leaflet-popup-tip { background: #ffffff !important; border-color: rgba(51,87,101,0.12) !important; }
+
+.coo-popup-title { color: var(--coast-sage) !important; border-bottom-color: var(--rx-hairline) !important; }
+html[data-theme="light"] .coo-popup-title { color: var(--coast-deep) !important; }
+.coo-popup-row > span:first-child { color: var(--rx-ink-mute) !important; }
+.coo-popup-row > span:last-child  { color: var(--rx-ink) !important; }
+
+.leaflet-control-zoom a {
+  background: rgba(42, 69, 85, 0.92) !important;
+  color: var(--rx-ink) !important;
+  border-color: var(--rx-hairline-hi) !important;
+}
+.leaflet-control-zoom a:hover { background: rgba(116, 168, 164, 0.22) !important; color: var(--coast-sage) !important; }
+html[data-theme="light"] .leaflet-control-zoom a {
+  background: #ffffff !important; color: var(--coast-deep) !important;
+  border-color: rgba(51,87,101,0.12) !important;
+}
+
+/* Project site marker — coastal sage gradient */
+.coo-site-marker {
+  background: linear-gradient(135deg, var(--coast-sage), var(--coast-deep)) !important;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 0 16px rgba(116, 168, 164, 0.6) !important;
+}
+.coo-site-marker svg { color: var(--coast-mist) !important; }
+
+/* Status markers — keep semantic distinction but in coastal tones */
+.coo-marker.delivered  { background: var(--rx-ok)   !important; box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 0 10px rgba(143, 191, 159, 0.6) !important; }
+.coo-marker.in-transit { background: var(--rx-warn) !important; box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 0 10px rgba(201, 164, 122, 0.6) !important; }
+.coo-marker.delayed    { background: var(--rx-crit) !important; box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 0 10px rgba(201, 122, 108, 0.6) !important; }
+.coo-marker.pending    { background: var(--rx-ink-faint) !important; }
+
+/* Cluster bubbles */
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background: rgba(116, 168, 164, 0.85) !important;
+  color: var(--coast-deep) !important;
+  border: 1px solid var(--coast-sage) !important;
+}
+
+/* Coo-popup status pill */
+.coo-popup-status { border-radius: 4px !important; }
+
+/* --------------------------------------------------------------------------
+   19. FORM TABS (inside package modal etc.)
+   -------------------------------------------------------------------------- */
+.form-tab {
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.78rem !important;
+  border-radius: 7px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.005em;
+}
+.form-tab.active {
+  background: var(--coast-sage) !important;
+  color: var(--coast-deep) !important;
+}
+
+/* --------------------------------------------------------------------------
+   20. NOTIFICATION DOT / BANNERS — sage tinted instead of red glow
+   -------------------------------------------------------------------------- */
+.sync-status-banner {
+  border-color: var(--rx-hairline-hi) !important;
+  background: linear-gradient(180deg, rgba(42, 69, 85, 0.95), rgba(33, 56, 74, 0.85)) !important;
+}
+html[data-theme="light"] .sync-status-banner { background: #ffffff !important; }
+
+/* --------------------------------------------------------------------------
+   21. SCROLLBARS — themed
+   -------------------------------------------------------------------------- */
+* { scrollbar-color: var(--rx-hairline-hi) transparent; scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--rx-hairline-hi);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--rx-accent-line); background-clip: padding-box; }
+
+/* --------------------------------------------------------------------------
+   22. MAIN CONTENT — restore optical breathing without bloating density
+   -------------------------------------------------------------------------- */
+.main-content { padding: 1.25rem 1.25rem !important; }
+
+/* --------------------------------------------------------------------------
+   23. PAGE HEADERS (within tabs) — denser
+   -------------------------------------------------------------------------- */
+.page-header { margin-bottom: 0.75rem !important; }
+.page-title  { font-size: 1.15rem !important; font-weight: 600 !important; letter-spacing: -0.022em !important; color: var(--rx-ink) !important; }
+
+/* --------------------------------------------------------------------------
+   24. MISC: Notification badge dot, sync indicator dots
+   -------------------------------------------------------------------------- */
+.dot-ok    { background: var(--rx-ok)   !important; }
+.dot-warn  { background: var(--rx-warn) !important; }
+.dot-crit  { background: var(--rx-crit) !important; }
+.dot-info  { background: var(--coast-sky) !important; }
+
+/* --------------------------------------------------------------------------
+   25. RESPONSIVE FINESSE — keep dense layout on smaller screens
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .nav-tab { padding: 0.35rem 0.55rem !important; font-size: 0.72rem !important; }
+  .nav-tab svg { width: 13px !important; height: 13px !important; }
+  .stat-value { font-size: 1.4rem !important; }
+  .header { padding: 0.6rem 0.85rem !important; }
+  .main-content { padding: 0.85rem !important; }
+}
+
+/* End of Coastal Retreat redesign layer */
+
+/* ============================================================================
+   COO MAP WORKSPACE — sidebar pattern with multi-select chips + fullscreen
+   Styled to match Procurement Schedule (DS6) but tuned to coastal palette.
+   ============================================================================ */
+
+/* Workspace container */
+.coo-workspace {
+  overflow: hidden;
+  border-radius: 12px !important;
+  background: linear-gradient(180deg, rgba(42, 69, 85, 0.85), rgba(33, 56, 74, 0.75)) !important;
+}
+html[data-theme="light"] .coo-workspace { background: #ffffff !important; }
+
+/* Top toolbar */
+.coo-tb {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--rx-hairline);
+  background: rgba(26, 43, 53, 0.55);
+  flex-wrap: wrap;
+}
+html[data-theme="light"] .coo-tb { background: rgba(51, 87, 101, 0.04); }
+.coo-tb-title {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 0.85rem; font-weight: 600; color: var(--rx-ink);
+  letter-spacing: -0.018em;
+}
+.coo-tb-title svg { color: var(--coast-sage); width: 16px; height: 16px; }
+.coo-tb-meta {
+  font-size: 0.7rem; color: var(--rx-ink-mute);
+  letter-spacing: 0.02em; padding: 2px 8px;
+  border: 1px solid var(--rx-hairline-hi);
+  border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.coo-tb-legend {
+  display: flex; gap: 0.85rem; flex-wrap: wrap;
+  margin-left: auto; font-size: 0.72rem; color: var(--rx-ink-mute);
+}
+.coo-tb-legend > span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.coo-leg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.coo-leg-dot.delivered  { background: var(--rx-ok);   box-shadow: 0 0 6px rgba(143, 191, 159, 0.55); }
+.coo-leg-dot.in-transit { background: var(--rx-warn); box-shadow: 0 0 6px rgba(201, 164, 122, 0.55); }
+.coo-leg-dot.delayed    { background: var(--rx-crit); box-shadow: 0 0 6px rgba(201, 122, 108, 0.55); }
+.coo-leg-dot.pending    { background: var(--rx-ink-faint); }
+
+/* Maximize button — mirrors ds6-maxbtn */
+.coo-maxbtn {
+  padding: 4px 8px;
+  border: 1px solid var(--rx-hairline-hi);
+  background: transparent;
+  color: var(--rx-ink-soft);
+  font-size: 14px; cursor: pointer;
+  border-radius: 6px;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; line-height: 1;
+}
+.coo-maxbtn:hover { background: var(--coast-sage); color: var(--coast-deep); border-color: var(--coast-sage); }
+.coo-workspace.coo-maximized .coo-maxbtn { color: var(--coast-sage); border-color: var(--coast-sage); }
+.coo-workspace.coo-maximized .coo-maxbtn:hover { background: var(--coast-sage); color: var(--coast-deep); }
+
+/* Layout: sidebar + main */
+.coo-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  min-height: 580px;
+}
+
+/* Sidebar */
+.coo-sb {
+  border-right: 1px solid var(--rx-hairline);
+  padding: 0.75rem 0.65rem;
+  overflow-y: auto;
+  max-height: 720px;
+  background: rgba(26, 43, 53, 0.30);
+}
+html[data-theme="light"] .coo-sb { background: rgba(51, 87, 101, 0.025); }
+.coo-sb::-webkit-scrollbar { width: 6px; }
+
+.coo-sec { margin-bottom: 0.85rem; }
+.coo-lbl {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--rx-ink-mute);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  display: flex; align-items: baseline; gap: 0.35rem;
+}
+.coo-lbl-hint {
+  font-weight: 400;
+  color: var(--rx-ink-faint);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* Search input within sidebar */
+.coo-search-wrap {
+  position: relative;
+  display: flex; align-items: center;
+}
+.coo-search-icon {
+  position: absolute; left: 8px;
+  width: 13px; height: 13px;
+  color: var(--rx-ink-mute);
+  pointer-events: none;
+}
+.coo-search-wrap input {
+  width: 100%;
+  background: rgba(26, 43, 53, 0.55);
+  border: 1px solid var(--rx-hairline-hi);
+  color: var(--rx-ink);
+  border-radius: 7px;
+  padding: 0.4rem 1.85rem 0.4rem 1.85rem;
+  font-size: 0.76rem;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+html[data-theme="light"] .coo-search-wrap input {
+  background: #fff;
+  border-color: rgba(51, 87, 101, 0.18);
+}
+.coo-search-wrap input:focus {
+  border-color: var(--coast-sage);
+  box-shadow: 0 0 0 3px var(--rx-accent-soft);
+}
+.coo-search-wrap input::placeholder { color: var(--rx-ink-faint); }
+.coo-search-clear {
+  position: absolute; right: 4px;
+  width: 18px; height: 18px;
+  border: none; background: transparent;
+  color: var(--rx-ink-mute);
+  font-size: 14px; line-height: 1;
+  cursor: pointer; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+}
+.coo-search-clear:hover { background: var(--rx-accent-soft); color: var(--coast-sage); }
+
+/* Sort select */
+.coo-sort {
+  width: 100%;
+  background: rgba(26, 43, 53, 0.55);
+  border: 1px solid var(--rx-hairline-hi);
+  color: var(--rx-ink);
+  border-radius: 7px;
+  padding: 0.38rem 0.55rem;
+  font-size: 0.76rem;
+  cursor: pointer;
+  outline: none;
+}
+html[data-theme="light"] .coo-sort {
+  background: #fff;
+  border-color: rgba(51, 87, 101, 0.18);
+}
+.coo-sort:focus { border-color: var(--coast-sage); box-shadow: 0 0 0 3px var(--rx-accent-soft); }
+
+/* Chip group (pill multi-select) */
+.coo-chips {
+  display: flex; flex-wrap: wrap; gap: 3px;
+}
+.coo-chips-wrap.coo-vendor-chips {
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.coo-chip {
+  padding: 3px 8px;
+  border-radius: 9px;
+  font-size: 10.5px;
+  border: 1px solid var(--rx-hairline-hi);
+  background: transparent;
+  color: var(--rx-ink-soft);
+  cursor: pointer;
+  user-select: none;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.coo-chip:hover { background: rgba(116, 168, 164, 0.12); border-color: var(--rx-accent-line); color: var(--rx-ink); }
+.coo-chip.on {
+  background: var(--coast-sage);
+  color: var(--coast-deep);
+  border-color: var(--coast-sage);
+  font-weight: 600;
+}
+html[data-theme="light"] .coo-chip.on {
+  background: var(--coast-deep);
+  color: var(--coast-mist);
+  border-color: var(--coast-deep);
+}
+
+/* Multi-select layer rows (Status, Region) — like DS6 Display Layers */
+.coo-lyr-list { display: flex; flex-direction: column; gap: 3px; }
+.coo-lyr {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 4px 8px;
+  border: 1px solid var(--rx-hairline-hi);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--rx-ink-soft);
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.coo-lyr:hover { background: rgba(116, 168, 164, 0.10); border-color: var(--rx-accent-line); color: var(--rx-ink); }
+.coo-lyr.on {
+  background: rgba(116, 168, 164, 0.15);
+  border-color: var(--coast-sage);
+  color: var(--rx-ink);
+}
+html[data-theme="light"] .coo-lyr.on {
+  background: rgba(51, 87, 101, 0.08);
+  border-color: var(--coast-deep);
+  color: var(--rx-ink);
+}
+.coo-ldot {
+  width: 9px; height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.coo-ldot.delivered  { background: var(--rx-ok); }
+.coo-ldot.in-transit { background: var(--rx-warn); }
+.coo-ldot.delayed    { background: var(--rx-crit); }
+.coo-ldot.pending    { background: var(--rx-ink-faint); }
+.coo-lck {
+  margin-left: auto;
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  background: transparent;
+  color: transparent;
+  border: 1px solid var(--rx-hairline-hi);
+  font-weight: 700;
+}
+.coo-lyr.on .coo-lck {
+  background: var(--coast-sage);
+  color: var(--coast-deep);
+  border-color: var(--coast-sage);
+}
+
+/* Reset all button */
+.coo-reset-btn {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rx-hairline-hi);
+  background: rgba(127, 84, 61, 0.10);
+  color: var(--coast-brown, #c89980);
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+.coo-reset-btn:hover {
+  background: rgba(127, 84, 61, 0.20);
+  border-color: rgba(200, 153, 128, 0.5);
+  color: #d8a78a;
+}
+html[data-theme="light"] .coo-reset-btn { color: #7F543D; background: rgba(127, 84, 61, 0.06); }
+html[data-theme="light"] .coo-reset-btn:hover { background: rgba(127, 84, 61, 0.12); }
+
+/* Main panel: map + summary */
+.coo-main { display: flex; flex-direction: column; }
+.coo-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  height: 100%;
+  min-height: 580px;
+}
+.coo-map-pane {
+  border-right: 1px solid var(--rx-hairline);
+  display: flex;
+  position: relative;
+}
+#cooMap {
+  width: 100%;
+  height: 100%;
+  min-height: 580px;
+  background: #1a2b35;
+}
+html[data-theme="light"] #cooMap { background: #DBE2DC; }
+.coo-summary-pane {
+  display: flex; flex-direction: column;
+  min-height: 580px;
+}
+.coo-summary-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--rx-hairline);
+  font-size: 0.82rem; font-weight: 600;
+  color: var(--rx-ink);
+  letter-spacing: -0.018em;
+  background: rgba(26, 43, 53, 0.30);
+}
+html[data-theme="light"] .coo-summary-head { background: rgba(51, 87, 101, 0.025); }
+.coo-summary-count {
+  font-size: 0.7rem;
+  color: var(--rx-ink-mute);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.coo-summary-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 580px;
+}
+.coo-summary-table { font-size: 0.76rem; }
+.coo-summary-table thead {
+  position: sticky; top: 0; z-index: 2;
+  background: rgba(26, 43, 53, 0.95);
+  backdrop-filter: blur(6px);
+}
+html[data-theme="light"] .coo-summary-table thead { background: rgba(255, 255, 255, 0.95); }
+.coo-summary-table th {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.62rem !important;
+}
+.coo-summary-table td { padding: 0.45rem 0.75rem !important; font-size: 0.74rem !important; }
+
+/* Maximized state — fullscreen overlay
+   When workspace is maximized, we hide every sibling inside #coomap
+   (page header, stats grid, donut charts) so nothing leaks through the
+   fixed overlay. We also bump z-index well above any chart canvas layer. */
+.coo-workspace.coo-maximized {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  z-index: 9000 !important;            /* well above charts, banners, dropdowns */
+  margin: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden;
+  background: var(--rx-bg) !important; /* solid backdrop, no transparency leak */
+}
+html[data-theme="light"] .coo-workspace.coo-maximized { background: #ffffff !important; }
+.coo-workspace.coo-maximized .coo-tb { border-radius: 0; }
+.coo-workspace.coo-maximized .coo-layout { height: calc(100vh - 50px); min-height: 0; }
+.coo-workspace.coo-maximized .coo-sb { max-height: calc(100vh - 50px); }
+.coo-workspace.coo-maximized .coo-main-grid { height: 100%; min-height: 0; }
+.coo-workspace.coo-maximized #cooMap { min-height: 0; }
+.coo-workspace.coo-maximized .coo-summary-pane,
+.coo-workspace.coo-maximized .coo-summary-body { max-height: none; min-height: 0; }
+
+/* When workspace is maximized, hide every sibling inside the COO Map tab
+   (page header, stat cards, donut charts grid). Selecting via :has() reaches
+   the parent #coomap from a child workspace state — supported in all modern
+   evergreen browsers. The body class fallback below covers older engines. */
+#coomap:has(.coo-workspace.coo-maximized) > *:not(.coo-workspace) { display: none !important; }
+body.coo-fullscreen #coomap > *:not(.coo-workspace) { display: none !important; }
+body.coo-fullscreen .header,
+body.coo-fullscreen .nav-tabs-wrap { display: none !important; }
+body.coo-fullscreen .main-content { padding: 0 !important; }
+/* Floating sync banner uses z-index:9999 — push it above the maximized
+   overlay's z-index:9000 so it stays usable, OR hide it cleanly if the
+   user prefers an unobstructed map. Hide to keep the map distraction-free. */
+body.coo-fullscreen #syncIndicator,
+body.coo-fullscreen #syncDropdown,
+body.coo-fullscreen #syncDropdownWrap { display: none !important; }
+
+/* Responsive — collapse sidebar on small screens */
+@media (max-width: 1100px) {
+  .coo-layout { grid-template-columns: 1fr; }
+  .coo-sb {
+    border-right: none;
+    border-bottom: 1px solid var(--rx-hairline);
+    max-height: 320px;
+  }
+  .coo-main-grid { grid-template-columns: 1fr; }
+  .coo-map-pane { border-right: none; border-bottom: 1px solid var(--rx-hairline); }
+  #cooMap { min-height: 380px; }
+  .coo-summary-pane { min-height: 360px; }
+}
+
+/* End of COO Map workspace styling */
+
 </style>
 </head>
 <body>
@@ -2324,6 +3455,7 @@ body, .header, .card, .stat-card, .nav-tabs, .nav-tab, .btn, .project-select,
                 <button class="nav-tab" data-tab="schedule" onclick="switchTab('schedule')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>Procurement Schedule</button>
                 
                 <button class="nav-tab" data-tab="activitylog" onclick="switchTab('activitylog')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Activity Log</button>
+                <button class="nav-tab" data-tab="coomap" onclick="switchTab('coomap')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>COO Map</button>
             </nav>
         </div>
     </header>
@@ -2816,6 +3948,180 @@ body, .header, .card, .stat-card, .nav-tabs, .nav-tab, .btn, .project-select,
                 </div>
             </div>
             <div id="activityLogContent" style="display:flex;flex-direction:column;gap:0;"></div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- COO MAP TAB - Country of Origin global visualization         -->
+        <!-- ============================================================ -->
+        <div id="coomap" class="tab-content">
+            <!-- Page header -->
+            <div class="page-header" style="margin-bottom:1rem;">
+                <div>
+                    <h2 class="page-title">Procurement Dashboard — Country of Origin</h2>
+                    <p style="color:var(--rx-ink-mute);font-size:0.825rem;margin-top:0.25rem;">Global overview of supplier origins for Salak Unit 7 procurement packages</p>
+                </div>
+            </div>
+
+            <!-- Summary Stat Cards -->
+            <div class="stats-grid" id="cooStatsGrid"></div>
+
+            <!-- ============================================================
+                 COO Map Workspace — sidebar filters + map + summary table
+                 Mirrors the Procurement Schedule (DS6) sidebar pattern with
+                 multi-select chips, search, sort, and fullscreen toggle.
+                 ============================================================ -->
+            <div class="card coo-workspace" id="coo-workspace" style="margin-bottom:1rem;">
+                <!-- Workspace header (title + controls + fullscreen) -->
+                <div class="coo-tb">
+                    <div class="coo-tb-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Country of Origin (COO) Map</span>
+                    </div>
+                    <div class="coo-tb-meta" id="coo-tb-meta">Showing — of —</div>
+                    <div class="coo-tb-legend">
+                        <span><span class="coo-leg-dot delivered"></span>Delivered</span>
+                        <span><span class="coo-leg-dot in-transit"></span>In Transit</span>
+                        <span><span class="coo-leg-dot delayed"></span>Delayed</span>
+                        <span><span class="coo-leg-dot pending"></span>Pending</span>
+                    </div>
+                    <button class="coo-maxbtn" onclick="cooToggleMax()" id="coo-maxbtn" title="Maximize (F)">&#x26F6;</button>
+                </div>
+
+                <!-- Layout: sidebar + main panel -->
+                <div class="coo-layout" id="coo-layout">
+
+                    <!-- ---------- SIDEBAR ---------- -->
+                    <aside class="coo-sb" id="coo-sb">
+                        <!-- Search -->
+                        <div class="coo-sec">
+                            <div class="coo-lbl">Search</div>
+                            <div class="coo-search-wrap">
+                                <svg class="coo-search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"/>
+                                </svg>
+                                <input type="text" id="cooSearch" placeholder="Vendor, PO, item, area..." autocomplete="off" spellcheck="false" oninput="renderCooMap()" />
+                                <button type="button" class="coo-search-clear" id="cooSearchClear" title="Clear" aria-label="Clear search" onclick="document.getElementById('cooSearch').value='';renderCooMap();">&times;</button>
+                            </div>
+                        </div>
+
+                        <!-- Sort -->
+                        <div class="coo-sec">
+                            <div class="coo-lbl">Sort By</div>
+                            <select class="coo-sort" id="cooSortBy" onchange="renderCooMap()">
+                                <option value="status">Status (Delayed first)</option>
+                                <option value="vendor">Vendor (A–Z)</option>
+                                <option value="vendor_desc">Vendor (Z–A)</option>
+                                <option value="country">Country (A–Z)</option>
+                                <option value="po">PO Number</option>
+                                <option value="progress_desc">Progress (High–Low)</option>
+                                <option value="progress_asc">Progress (Low–High)</option>
+                            </select>
+                        </div>
+
+                        <!-- Discipline (multi-select) -->
+                        <div class="coo-sec">
+                            <div class="coo-lbl">Discipline <span class="coo-lbl-hint">(multi-select)</span></div>
+                            <div class="coo-chips" id="cooDiscChips" data-key="discipline">
+                                <span class="coo-chip on" data-v="all">All</span>
+                            </div>
+                        </div>
+
+                        <!-- Status (multi-select) -->
+                        <div class="coo-sec">
+                            <div class="coo-lbl">Status <span class="coo-lbl-hint">(multi-select)</span></div>
+                            <div class="coo-lyr-list" id="cooStatusList">
+                                <div class="coo-lyr on" data-v="Delivered"><span class="coo-ldot delivered"></span>Delivered<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="In Transit"><span class="coo-ldot in-transit"></span>In Transit<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="Delayed"><span class="coo-ldot delayed"></span>Delayed<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="Pending"><span class="coo-ldot pending"></span>Pending<span class="coo-lck">✓</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Region (multi-select) -->
+                        <div class="coo-sec">
+                            <div class="coo-lbl">Region <span class="coo-lbl-hint">(multi-select)</span></div>
+                            <div class="coo-lyr-list" id="cooRegionList">
+                                <div class="coo-lyr on" data-v="SE Asia">SE Asia<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="Asia">Asia<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="Europe">Europe<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="N. America">N. America<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="S. America">S. America<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="Oceania">Oceania<span class="coo-lck">✓</span></div>
+                                <div class="coo-lyr on" data-v="Other">Other<span class="coo-lck">✓</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Country (multi-select chips) -->
+                        <div class="coo-sec">
+                            <div class="coo-lbl">Country <span class="coo-lbl-hint">(multi-select)</span></div>
+                            <div class="coo-chips coo-chips-wrap" id="cooCountryChips" data-key="country">
+                                <span class="coo-chip on" data-v="all">All</span>
+                            </div>
+                        </div>
+
+                        <!-- Vendor (multi-select chips, scrollable) -->
+                        <div class="coo-sec">
+                            <div class="coo-lbl">Vendor <span class="coo-lbl-hint">(multi-select)</span></div>
+                            <div class="coo-chips coo-chips-wrap coo-vendor-chips" id="cooVendorChips" data-key="vendor">
+                                <span class="coo-chip on" data-v="all">All</span>
+                            </div>
+                        </div>
+
+                        <!-- Reset all -->
+                        <div class="coo-sec">
+                            <button class="coo-reset-btn" onclick="resetCooFilters()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                Reset all filters
+                            </button>
+                        </div>
+                    </aside>
+
+                    <!-- ---------- MAIN PANEL ---------- -->
+                    <div class="coo-main">
+                        <div class="coo-main-grid" id="cooMapLayout">
+                            <!-- Map -->
+                            <div class="coo-map-pane">
+                                <div id="cooMap"></div>
+                            </div>
+                            <!-- Summary table -->
+                            <div class="coo-summary-pane">
+                                <div class="coo-summary-head">
+                                    <span>COO Summary</span>
+                                    <span id="cooSummaryCount" class="coo-summary-count"></span>
+                                </div>
+                                <div class="coo-summary-body">
+                                    <table class="data-table coo-summary-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Vendor</th>
+                                                <th>Country</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="cooSummaryTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom donut charts -->
+            <div class="charts-grid">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">PO by Region</h3></div>
+                    <div class="card-body"><div class="chart-container" style="height:240px;"><canvas id="cooRegionChart"></canvas></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">PO Status Distribution</h3></div>
+                    <div class="card-body"><div class="chart-container" style="height:240px;"><canvas id="cooStatusChart"></canvas></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Top Discipline</h3></div>
+                    <div class="card-body"><div class="chart-container" style="height:240px;"><canvas id="cooDisciplineChart"></canvas></div></div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -3427,7 +4733,7 @@ body, .header, .card, .stat-card, .nav-tabs, .nav-tab, .btn, .project-select,
         
 
 
-        const countries = ["Indonesia","China","Japan","South Korea","Germany","United States","Italy","France","United Kingdom","Netherlands","Singapore","Malaysia","Thailand","Vietnam","India","Taiwan","Australia"].sort();
+        const countries = ["Indonesia","China","Japan","South Korea","Germany","United States","Italy","France","United Kingdom","Netherlands","Singapore","Malaysia","Thailand","Vietnam","India","Taiwan","Australia","Poland"].sort();
         const incoterms = [{code:"EXW",name:"Ex Works",mode:"all",desc:"Seller makes goods available at their premises"},{code:"FCA",name:"Free Carrier",mode:"all",desc:"Seller delivers goods to carrier"},{code:"CPT",name:"Carriage Paid To",mode:"all",desc:"Seller pays freight to destination"},{code:"CIP",name:"Carriage Insurance Paid",mode:"all",desc:"Seller pays freight and insurance"},{code:"DAP",name:"Delivered at Place",mode:"all",desc:"Seller delivers at destination"},{code:"DPU",name:"Delivered at Place Unloaded",mode:"all",desc:"Seller delivers and unloads"},{code:"DDP",name:"Delivered Duty Paid",mode:"all",desc:"Seller delivers cleared for import"},{code:"FAS",name:"Free Alongside Ship",mode:"sea",desc:"Seller delivers alongside vessel"},{code:"FOB",name:"Free on Board",mode:"sea",desc:"Seller delivers on board vessel"},{code:"CFR",name:"Cost and Freight",mode:"sea",desc:"Seller pays freight to port"},{code:"CIF",name:"Cost Insurance Freight",mode:"sea",desc:"Seller pays freight and insurance to port"}];
         const milestoneLabels = [{key:'issueRFQ',label:'Issue RFQ'},{key:'receiveQuotation',label:'Receive Quotation'},{key:'issueTBE',label:'Issue TBE'},{key:'issueCBE',label:'Issue CBE'},{key:'finalNegotiation',label:'Final Negotiation'},{key:'issuePO',label:'Issue PO'},{key:'kom',label:'KOM'}];
 
@@ -9984,6 +11290,742 @@ window.switchTab = function(tab){
 
 // Initial render if schedule tab is visible
 setTimeout(function(){ if(document.getElementById('schedule') && document.getElementById('schedule').classList.contains('active')){ render(); } },100);
+
+})();
+
+// ============================================================================
+// COO MAP MODULE — Country of Origin global visualization for procurement
+// Renders interactive Leaflet world map with vendor origin markers,
+// shipment routes to project site, color-coded status, and dynamic filters.
+// ============================================================================
+(function(){
+  'use strict';
+
+  // -------------------------------------------------------------------------
+  // 1. COUNTRY → LAT/LNG LOOKUP TABLE
+  //    Maps country names found in package.coo to their geographic centroids.
+  //    Extend this table when new origin countries are added to the dataset.
+  // -------------------------------------------------------------------------
+  const COUNTRY_COORDS = {
+    'Indonesia':     { lat: -0.7893, lng: 113.9213 },
+    'Japan':         { lat: 36.2048, lng: 138.2529 },
+    'Germany':       { lat: 51.1657, lng: 10.4515 },
+    'France':        { lat: 46.2276, lng: 2.2137 },
+    'China':         { lat: 35.8617, lng: 104.1954 },
+    'South Korea':   { lat: 35.9078, lng: 127.7669 },
+    'Korea':         { lat: 35.9078, lng: 127.7669 },
+    'India':         { lat: 20.5937, lng: 78.9629 },
+    'Italy':         { lat: 41.8719, lng: 12.5674 },
+    'United States': { lat: 37.0902, lng: -95.7129 },
+    'USA':           { lat: 37.0902, lng: -95.7129 },
+    'Switzerland':   { lat: 46.8182, lng: 8.2275 },
+    'Finland':       { lat: 61.9241, lng: 25.7482 },
+    'Sweden':        { lat: 60.1282, lng: 18.6435 },
+    'United Kingdom':{ lat: 55.3781, lng: -3.4360 },
+    'UK':            { lat: 55.3781, lng: -3.4360 },
+    'Netherlands':   { lat: 52.1326, lng: 5.2913 },
+    'Spain':         { lat: 40.4637, lng: -3.7492 },
+    'Belgium':       { lat: 50.5039, lng: 4.4699 },
+    'Poland':        { lat: 51.9194, lng: 19.1451 },
+    'Brazil':        { lat: -14.2350, lng: -51.9253 },
+    'Malaysia':      { lat: 4.2105, lng: 101.9758 },
+    'Singapore':     { lat: 1.3521, lng: 103.8198 },
+    'Taiwan':        { lat: 23.6978, lng: 120.9605 },
+    'Thailand':      { lat: 15.8700, lng: 100.9925 },
+    'Vietnam':       { lat: 14.0583, lng: 108.2772 },
+    'Australia':     { lat: -25.2744, lng: 133.7751 },
+    'Canada':        { lat: 56.1304, lng: -106.3468 }
+  };
+
+  // Country → ISO code for flag emoji rendering (no external image needed)
+  const COUNTRY_FLAGS = {
+    'Indonesia':'🇮🇩','Japan':'🇯🇵','Germany':'🇩🇪','France':'🇫🇷','China':'🇨🇳',
+    'South Korea':'🇰🇷','Korea':'🇰🇷','India':'🇮🇳','Italy':'🇮🇹','United States':'🇺🇸',
+    'USA':'🇺🇸','Switzerland':'🇨🇭','Finland':'🇫🇮','Sweden':'🇸🇪','United Kingdom':'🇬🇧',
+    'UK':'🇬🇧','Netherlands':'🇳🇱','Spain':'🇪🇸','Belgium':'🇧🇪','Poland':'🇵🇱',
+    'Brazil':'🇧🇷','Malaysia':'🇲🇾','Singapore':'🇸🇬','Taiwan':'🇹🇼','Thailand':'🇹🇭',
+    'Vietnam':'🇻🇳','Australia':'🇦🇺','Canada':'🇨🇦'
+  };
+
+  // Project site location (Salak Unit 7 in Sukabumi, West Java, Indonesia)
+  const PROJECT_SITE = { lat: -6.7184, lng: 106.6822, name: 'Salak Unit 7', city: 'Sukabumi, Indonesia' };
+
+  // -------------------------------------------------------------------------
+  // 2. STATE — module-level handles to the Leaflet map and chart instances.
+  //    Reused across re-renders to avoid re-instantiation flicker.
+  // -------------------------------------------------------------------------
+  let cooMap = null;
+  let cooMarkerGroup = null;       // LayerGroup of vendor markers
+  let cooRouteGroup = null;        // LayerGroup of shipment route polylines
+  let cooSiteMarker = null;        // Single project-site marker
+  let cooTileLayer = null;
+  let cooChartRegion = null, cooChartStatus = null, cooChartDiscipline = null;
+  let cooFiltersInitialized = false;
+
+  // -------------------------------------------------------------------------
+  // 3. STATUS DERIVATION
+  //    The dataset doesn't carry a literal shipment status field; we compute
+  //    one from delivery progress + actual delivery date + vendor info.
+  //    Returns one of: 'Delivered' | 'In Transit' | 'Delayed' | 'Pending'.
+  // -------------------------------------------------------------------------
+  function deriveStatus(pkg){
+    const d = pkg.delivery || {};
+    const matAct = Number(d.materialReceivedActual || 0);
+    const matPlan = Number(d.materialAtSitePlan || 0);
+    const shipAct = Number(d.shippingStatus || 0);
+    const shipPlan = Number(d.shippingStatusPlan || 0);
+    const hasActualDelivery = !!d.actualDelivery100;
+
+    // No vendor / no PO yet → Pending
+    if(!pkg.vendorName || !pkg.contractNo){ return 'Pending'; }
+
+    // Material received >= 100% OR actual material at site filled → Delivered
+    if(matAct >= 100 || (d.actualMaterialAtSite100 && matAct >= 90)) return 'Delivered';
+
+    // Plan vs actual gap > 20 percentage points → Delayed
+    if(matPlan - matAct >= 20 || shipPlan - shipAct >= 20) return 'Delayed';
+
+    // Has any shipping or delivery actual progress → In Transit
+    if(hasActualDelivery || shipAct > 0 || matAct > 0) return 'In Transit';
+
+    // PO issued but no progress → Pending
+    return 'Pending';
+  }
+
+  // Status → color/badge metadata
+  const STATUS_META = {
+    'Delivered':  { color:'#10b981', cls:'delivered',  badge:'badge-success' },
+    'In Transit': { color:'#fbbf24', cls:'in-transit', badge:'badge-warning' },
+    'Delayed':    { color:'#ef4444', cls:'delayed',    badge:'badge-danger'  },
+    'Pending':    { color:'#64748b', cls:'pending',    badge:'badge-default' }
+  };
+
+  // -------------------------------------------------------------------------
+  // 4. DATA TRANSFORMATION
+  //    Convert global `packages` array → array of map-ready point objects.
+  //    Filters out packages without a recognized country.
+  // -------------------------------------------------------------------------
+  function buildCooDataset(){
+    if(typeof packages === 'undefined' || !Array.isArray(packages)) return [];
+    return packages
+      .map(p => {
+        const country = (p.coo || '').trim();
+        const coords = COUNTRY_COORDS[country];
+        if(!coords) return null;  // skip if country unknown / blank
+        return {
+          id: p.id,
+          vendor: p.vendorName || '(Unassigned)',
+          country: country,
+          lat: coords.lat,
+          lng: coords.lng,
+          po_number: p.contractNo || p.rfqNo || '-',
+          item: p.packageName || p.description || '-',
+          discipline: p.discipline || '-',
+          status: deriveStatus(p),
+          mfgProgress: Number((p.manufacture||{}).actualProgress || 0),
+          deliveryLocation: (p.delivery||{}).deliveryLocation || '-'
+        };
+      })
+      .filter(Boolean);
+  }
+
+  // Region grouping for "PO by Region" donut chart
+  function regionForCountry(c){
+    if(['Indonesia','Malaysia','Singapore','Thailand','Vietnam','Philippines'].includes(c)) return 'SE Asia';
+    if(['Japan','China','South Korea','Korea','Taiwan','India'].includes(c)) return 'Asia';
+    if(['Germany','France','Italy','Switzerland','Finland','Sweden','United Kingdom','UK','Netherlands','Spain','Belgium','Poland'].includes(c)) return 'Europe';
+    if(['United States','USA','Canada'].includes(c)) return 'N. America';
+    if(['Brazil'].includes(c)) return 'S. America';
+    if(['Australia'].includes(c)) return 'Oceania';
+    return 'Other';
+  }
+
+  // -------------------------------------------------------------------------
+  // 5. FILTER STATE & POPULATION
+  //    Multi-select model: selectedSets[key] is a Set; "all" sentinel means
+  //    "no constraint" (faster than holding every option). User actions on
+  //    chips toggle membership; we then re-render.
+  // -------------------------------------------------------------------------
+  const cooSel = {
+    discipline: new Set(['all']),    // chip group
+    status:     new Set(['Delivered','In Transit','Delayed','Pending']),  // status defaults: all 4 on
+    region:     new Set(['SE Asia','Asia','Europe','N. America','S. America','Oceania','Other']),
+    country:    new Set(['all']),    // chip group
+    vendor:     new Set(['all'])     // chip group
+  };
+
+  function populateCooFilters(){
+    const ds = buildCooDataset();
+    const disciplines = [...new Set(ds.map(d => d.discipline).filter(Boolean))].sort();
+    const vendors     = [...new Set(ds.map(d => d.vendor).filter(v => v && v !== '(Unassigned)'))].sort();
+    const countries   = [...new Set(ds.map(d => d.country).filter(Boolean))].sort();
+
+    // Render Discipline chips into #cooDiscChips (keep existing "All" chip)
+    const discCt = document.getElementById('cooDiscChips');
+    if(discCt){
+      const allChip = discCt.querySelector('[data-v="all"]');
+      discCt.innerHTML = '';
+      if(allChip) discCt.appendChild(allChip);
+      else {
+        const a = document.createElement('span');
+        a.className = 'coo-chip on'; a.dataset.v = 'all'; a.textContent = 'All';
+        discCt.appendChild(a);
+      }
+      disciplines.forEach(v => {
+        const c = document.createElement('span');
+        c.className = 'coo-chip'; c.dataset.v = v; c.textContent = v;
+        discCt.appendChild(c);
+      });
+    }
+
+    // Render Country chips
+    const ctyCt = document.getElementById('cooCountryChips');
+    if(ctyCt){
+      const allChip = ctyCt.querySelector('[data-v="all"]');
+      ctyCt.innerHTML = '';
+      if(allChip) ctyCt.appendChild(allChip);
+      else {
+        const a = document.createElement('span');
+        a.className = 'coo-chip on'; a.dataset.v = 'all'; a.textContent = 'All';
+        ctyCt.appendChild(a);
+      }
+      countries.forEach(v => {
+        const c = document.createElement('span');
+        c.className = 'coo-chip'; c.dataset.v = v;
+        // Prefix with flag emoji if available for visual scan
+        c.textContent = (COUNTRY_FLAGS[v] ? COUNTRY_FLAGS[v] + ' ' : '') + v;
+        ctyCt.appendChild(c);
+      });
+    }
+
+    // Render Vendor chips (scrollable)
+    const venCt = document.getElementById('cooVendorChips');
+    if(venCt){
+      const allChip = venCt.querySelector('[data-v="all"]');
+      venCt.innerHTML = '';
+      if(allChip) venCt.appendChild(allChip);
+      else {
+        const a = document.createElement('span');
+        a.className = 'coo-chip on'; a.dataset.v = 'all'; a.textContent = 'All';
+        venCt.appendChild(a);
+      }
+      vendors.forEach(v => {
+        const c = document.createElement('span');
+        c.className = 'coo-chip'; c.dataset.v = v; c.textContent = v;
+        venCt.appendChild(c);
+      });
+    }
+
+    // Bind handlers (idempotent — guarded by data attribute)
+    bindChipHandlers();
+    bindLayerHandlers();
+
+    cooFiltersInitialized = true;
+  }
+
+  // ----- Chip group click handler (multi-select with "All" toggle) ---------
+  // Behavior matches DS6 + standard expectation:
+  //   • Clicking "All" → resets to {all} and clears specific picks
+  //   • Clicking specific item:
+  //       - if currently {all}, switches to {item}
+  //       - else toggles item in the set
+  //       - if set becomes empty, falls back to {all}
+  function bindChipHandlers(){
+    document.querySelectorAll('.coo-chips').forEach(group => {
+      if(group.dataset.bound === '1') return;
+      group.dataset.bound = '1';
+      group.addEventListener('click', e => {
+        const chip = e.target.closest('.coo-chip');
+        if(!chip) return;
+        const key = group.dataset.key;       // 'discipline' | 'country' | 'vendor'
+        const val = chip.dataset.v;
+        const set = cooSel[key];
+        if(val === 'all'){
+          set.clear(); set.add('all');
+        } else {
+          if(set.has('all')) set.clear();
+          if(set.has(val)) set.delete(val); else set.add(val);
+          if(set.size === 0) set.add('all');
+        }
+        // Re-paint chip visual state
+        group.querySelectorAll('.coo-chip').forEach(c => {
+          c.classList.toggle('on', set.has(c.dataset.v));
+        });
+        renderCooMap();
+      });
+    });
+  }
+
+  // ----- Layer-row click handler for Status & Region multi-select ----------
+  function bindLayerHandlers(){
+    [
+      { id: 'cooStatusList', key: 'status' },
+      { id: 'cooRegionList', key: 'region' }
+    ].forEach(cfg => {
+      const list = document.getElementById(cfg.id);
+      if(!list || list.dataset.bound === '1') return;
+      list.dataset.bound = '1';
+      list.addEventListener('click', e => {
+        const row = e.target.closest('.coo-lyr');
+        if(!row) return;
+        const v = row.dataset.v;
+        const set = cooSel[cfg.key];
+        if(set.has(v)) set.delete(v); else set.add(v);
+        // Don't allow empty status/region — re-add the clicked one
+        if(set.size === 0) set.add(v);
+        list.querySelectorAll('.coo-lyr').forEach(r => {
+          r.classList.toggle('on', set.has(r.dataset.v));
+        });
+        renderCooMap();
+      });
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // 6. APPLY MULTI-SELECT FILTERS + SEARCH + SORT
+  // -------------------------------------------------------------------------
+  function getFilteredCooData(){
+    const all = buildCooDataset();
+    const q = ((document.getElementById('cooSearch')||{}).value || '').toLowerCase().trim();
+    const sortBy = (document.getElementById('cooSortBy')||{}).value || 'status';
+
+    const passSet = (set, value) => set.has('all') || set.has(value);
+
+    let list = all.filter(d =>
+      passSet(cooSel.discipline, d.discipline) &&
+      passSet(cooSel.country,    d.country) &&
+      passSet(cooSel.vendor,     d.vendor) &&
+      cooSel.status.has(d.status) &&
+      cooSel.region.has(regionForCountry(d.country))
+    );
+
+    // Search across vendor / PO / item / discipline / country
+    if(q){
+      list = list.filter(d =>
+        d.vendor.toLowerCase().includes(q) ||
+        d.po_number.toLowerCase().includes(q) ||
+        d.item.toLowerCase().includes(q) ||
+        d.discipline.toLowerCase().includes(q) ||
+        d.country.toLowerCase().includes(q) ||
+        (d.deliveryLocation || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    const statusRank = { 'Delayed':0, 'In Transit':1, 'Delivered':2, 'Pending':3 };
+    list.sort((a, b) => {
+      switch(sortBy){
+        case 'vendor':        return a.vendor.localeCompare(b.vendor);
+        case 'vendor_desc':   return b.vendor.localeCompare(a.vendor);
+        case 'country':       return a.country.localeCompare(b.country) || a.vendor.localeCompare(b.vendor);
+        case 'po':            return a.po_number.localeCompare(b.po_number);
+        case 'progress_desc': return b.mfgProgress - a.mfgProgress;
+        case 'progress_asc':  return a.mfgProgress - b.mfgProgress;
+        case 'status':
+        default:              return (statusRank[a.status]||9) - (statusRank[b.status]||9) || a.vendor.localeCompare(b.vendor);
+      }
+    });
+
+    return list;
+  }
+
+
+  // -------------------------------------------------------------------------
+  // 6. MAP INITIALIZATION (one-shot) + RENDER (re-runs on filter change)
+  // -------------------------------------------------------------------------
+  function initCooMap(){
+    if(cooMap || typeof L === 'undefined') return;
+    const el = document.getElementById('cooMap');
+    if(!el) return;
+
+    cooMap = L.map('cooMap', {
+      center: [10, 60],     // roughly centered between Asia and Europe for global view
+      zoom: 2,
+      minZoom: 2,
+      maxZoom: 8,
+      worldCopyJump: true,
+      zoomControl: true,
+      attributionControl: true
+    });
+
+    // Dark-themed basemap (CartoDB Dark Matter) — matches dashboard tone
+    cooTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors © CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(cooMap);
+
+    // Project site marker — anchor for shipment route lines
+    const siteIcon = L.divIcon({
+      className: '',
+      html: '<div class="coo-site-marker"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32]
+    });
+    cooSiteMarker = L.marker([PROJECT_SITE.lat, PROJECT_SITE.lng], { icon: siteIcon, zIndexOffset: 1000 })
+      .bindPopup(
+        '<div class="coo-popup-title">🏭 ' + PROJECT_SITE.name + '</div>' +
+        '<div class="coo-popup-row"><span>Project Site</span><span>' + PROJECT_SITE.city + '</span></div>' +
+        '<div class="coo-popup-row"><span>Owner</span><span>Star Energy Geothermal</span></div>'
+      )
+      .addTo(cooMap);
+
+    // Layer groups (re-cleared on each render)
+    cooMarkerGroup = L.layerGroup().addTo(cooMap);
+    cooRouteGroup  = L.layerGroup().addTo(cooMap);
+  }
+
+  // Build a popup HTML string for a vendor data point
+  function buildPopupHtml(d){
+    const meta = STATUS_META[d.status] || STATUS_META['Pending'];
+    const flag = COUNTRY_FLAGS[d.country] || '🌐';
+    return ''
+      + '<div class="coo-popup-title">' + escapeHtml(d.vendor) + '</div>'
+      + '<div class="coo-popup-row"><span>Country</span><span>' + flag + ' ' + escapeHtml(d.country) + '</span></div>'
+      + '<div class="coo-popup-row"><span>PO Number</span><span style="font-family:monospace;font-size:0.72rem;">' + escapeHtml(d.po_number) + '</span></div>'
+      + '<div class="coo-popup-row"><span>Item</span><span>' + escapeHtml(d.item) + '</span></div>'
+      + '<div class="coo-popup-row"><span>Discipline</span><span>' + escapeHtml(d.discipline) + '</span></div>'
+      + '<div class="coo-popup-row"><span>Mfg Progress</span><span>' + d.mfgProgress + '%</span></div>'
+      + '<div class="coo-popup-row"><span>Status</span><span><span class="coo-popup-status" style="background:' + meta.color + '20;color:' + meta.color + ';border:1px solid ' + meta.color + '50;">' + d.status + '</span></span></div>';
+  }
+
+  // Tiny safe HTML escape — popup content comes from user-editable data fields
+  function escapeHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // Main render — clears previous markers/routes, draws filtered set
+  function renderCooMap(){
+    if(!cooMap) initCooMap();
+    if(!cooMap || !cooMarkerGroup) return;
+
+    cooMarkerGroup.clearLayers();
+    cooRouteGroup.clearLayers();
+
+    const data = getFilteredCooData();
+
+    // Group multiple vendors at the same country location for spider-fan offsets
+    // (so overlapping markers in e.g. Indonesia don't fully obscure each other).
+    const byLatLng = new Map();
+    data.forEach(d => {
+      const key = d.lat.toFixed(2) + ',' + d.lng.toFixed(2);
+      if(!byLatLng.has(key)) byLatLng.set(key, []);
+      byLatLng.get(key).push(d);
+    });
+
+    byLatLng.forEach(group => {
+      const n = group.length;
+      group.forEach((d, idx) => {
+        // Offset overlapping markers in a small circle around the country centroid
+        const offset = n > 1 ? offsetFor(idx, n) : { dLat: 0, dLng: 0 };
+        const lat = d.lat + offset.dLat;
+        const lng = d.lng + offset.dLng;
+
+        const meta = STATUS_META[d.status] || STATUS_META['Pending'];
+        const icon = L.divIcon({
+          className: '',
+          html: '<div class="coo-marker ' + meta.cls + '" title="' + escapeHtml(d.vendor) + ' — ' + d.status + '"></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+
+        const marker = L.marker([lat, lng], { icon: icon, riseOnHover: true })
+          .bindPopup(buildPopupHtml(d), { maxWidth: 320 })
+          .bindTooltip(d.vendor + ' (' + d.country + ')', { direction: 'top', offset: [0, -10], opacity: 0.9 });
+
+        cooMarkerGroup.addLayer(marker);
+
+        // Draw shipment route only for non-Indonesia origins (international routes)
+        // Indonesia routes would be cluttered short hops; skip to keep map clean.
+        if(d.country !== 'Indonesia'){
+          const routeColor = meta.color;
+          const route = L.polyline(
+            [[lat, lng], [PROJECT_SITE.lat, PROJECT_SITE.lng]],
+            {
+              color: routeColor,
+              weight: 1.5,
+              opacity: 0.45,
+              dashArray: '6, 8',
+              interactive: false
+            }
+          );
+          cooRouteGroup.addLayer(route);
+        }
+      });
+    });
+
+    // Update side panels (summary table, stat cards, donut charts)
+    renderCooSummaryTable(data);
+    renderCooStatsCards(data);
+    renderCooCharts(data);
+  }
+  // Expose for inline onclick handlers
+  window.renderCooMap = renderCooMap;
+
+  // Spread overlapping markers around a country centroid in a small ring
+  function offsetFor(idx, n){
+    const radius = 2.0; // degrees
+    const angle = (2 * Math.PI * idx) / n;
+    return { dLat: radius * Math.sin(angle), dLng: radius * Math.cos(angle) };
+  }
+
+  // -------------------------------------------------------------------------
+  // 7. SIDE PANELS — Summary table, top stats cards, donut charts
+  // -------------------------------------------------------------------------
+  function renderCooSummaryTable(data){
+    const tbody = document.getElementById('cooSummaryTableBody');
+    const countLbl = document.getElementById('cooSummaryCount');
+    const metaLbl = document.getElementById('coo-tb-meta');
+    const totalSize = buildCooDataset().length;
+    if(!tbody) return;
+    const showStr = 'Showing ' + data.length + ' of ' + totalSize;
+    if(countLbl) countLbl.textContent = showStr;
+    if(metaLbl)  metaLbl.textContent  = showStr;
+
+    if(data.length === 0){
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:1.5rem;font-size:0.78rem;color:var(--rx-ink-mute);">No matching packages</td></tr>';
+      return;
+    }
+
+    // Data is already sorted by getFilteredCooData() per user-selected sort key
+    tbody.innerHTML = data.map(d => {
+      const meta = STATUS_META[d.status] || STATUS_META['Pending'];
+      const flag = COUNTRY_FLAGS[d.country] || '🌐';
+      return ''
+        + '<tr style="cursor:pointer;" onclick="zoomCooTo(' + d.lat + ',' + d.lng + ',' + d.id + ')">'
+        +   '<td>'
+        +     '<div style="font-weight:500;color:var(--rx-ink);font-size:0.78rem;">' + escapeHtml(d.vendor) + '</div>'
+        +     '<div style="font-size:0.65rem;color:var(--rx-ink-mute);font-family:monospace;margin-top:1px;">' + escapeHtml(d.po_number) + '</div>'
+        +   '</td>'
+        +   '<td style="font-size:0.74rem;">' + flag + ' ' + escapeHtml(d.country) + '</td>'
+        +   '<td><span class="badge ' + meta.badge + '">' + d.status + '</span></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  // Click a row → fly the map to that marker and open its popup
+  window.zoomCooTo = function(lat, lng, id){
+    if(!cooMap) return;
+    cooMap.flyTo([lat, lng], 5, { duration: 0.8 });
+    // Find and open the marker popup
+    setTimeout(() => {
+      cooMarkerGroup.eachLayer(m => {
+        const ll = m.getLatLng();
+        if(Math.abs(ll.lat - lat) < 3 && Math.abs(ll.lng - lng) < 3) m.openPopup();
+      });
+    }, 600);
+  };
+
+  // Top KPI summary cards
+  function renderCooStatsCards(data){
+    const grid = document.getElementById('cooStatsGrid');
+    if(!grid) return;
+    const total = data.length;
+    const delivered = data.filter(d => d.status === 'Delivered').length;
+    const inTransit = data.filter(d => d.status === 'In Transit').length;
+    const delayed   = data.filter(d => d.status === 'Delayed').length;
+    const vendors   = new Set(data.map(d => d.vendor).filter(v => v && v !== '(Unassigned)')).size;
+    const countries = new Set(data.map(d => d.country)).size;
+    const pct = (n) => total ? ((n/total)*100).toFixed(1) + '%' : '0%';
+
+    grid.innerHTML = ''
+      + statCard('Total PO', total, '100% scope', 'blue', '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>')
+      + statCard('Delivered', delivered, pct(delivered) + ' of total', 'emerald', '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>')
+      + statCard('In Transit', inTransit, pct(inTransit) + ' of total', 'teal', '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>')
+      + statCard('Delayed', delayed, pct(delayed) + ' of total', 'red', '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>')
+      + statCard('Total Vendors', vendors, countries + ' countries', 'teal', '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>');
+  }
+
+  function statCard(label, value, note, iconColor, svgPath){
+    return ''
+      + '<div class="stat-card">'
+      +   '<div class="stat-card-content">'
+      +     '<div>'
+      +       '<div class="stat-label">' + label + '</div>'
+      +       '<div class="stat-value">' + value + '</div>'
+      +     '</div>'
+      +     '<div class="stat-icon ' + iconColor + '"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">' + svgPath + '</svg></div>'
+      +   '</div>'
+      +   '<div class="stat-note">' + note + '</div>'
+      + '</div>';
+  }
+
+  // Donut charts (Region / Status / Discipline)
+  function renderCooCharts(data){
+    if(typeof Chart === 'undefined') return;
+
+    // Region distribution
+    const regionCounts = {};
+    data.forEach(d => { const r = regionForCountry(d.country); regionCounts[r] = (regionCounts[r]||0) + 1; });
+    drawDonut('cooRegionChart', 'cooChartRegion', Object.keys(regionCounts), Object.values(regionCounts),
+      ['#06b6d4','#14b8a6','#0ea5e9','#8b5cf6','#f59e0b','#ec4899','#94a3b8']);
+
+    // Status distribution (consistent color order across all renders)
+    const statusOrder = ['Delivered','In Transit','Delayed','Pending'];
+    const statusCounts = statusOrder.map(s => data.filter(d => d.status === s).length);
+    drawDonut('cooStatusChart', 'cooChartStatus', statusOrder, statusCounts,
+      ['#10b981','#fbbf24','#ef4444','#64748b']);
+
+    // Discipline distribution
+    const discCounts = {};
+    data.forEach(d => { discCounts[d.discipline] = (discCounts[d.discipline]||0) + 1; });
+    const discSorted = Object.entries(discCounts).sort((a,b) => b[1]-a[1]).slice(0,7);
+    drawDonut('cooDisciplineChart', 'cooChartDiscipline',
+      discSorted.map(e => e[0]), discSorted.map(e => e[1]),
+      ['#14b8a6','#06b6d4','#0d9488','#0ea5e9','#22d3ee','#67e8f9','#94a3b8']);
+  }
+
+  function drawDonut(canvasId, refName, labels, values, colors){
+    const canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    // Destroy previous instance to avoid Chart.js "canvas is already in use" errors
+    const refMap = { cooChartRegion: cooChartRegion, cooChartStatus: cooChartStatus, cooChartDiscipline: cooChartDiscipline };
+    if(refMap[refName]) refMap[refName].destroy();
+
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const labelColor = isLight ? '#475569' : '#cbd5e1';
+
+    const chart = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderColor: isLight ? '#fff' : '#1e293b',
+          borderWidth: 2,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: labelColor, font: { size: 11 }, padding: 10, boxWidth: 12 }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+                const pct = total ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Persist instance back to module state
+    if(refName === 'cooChartRegion')     cooChartRegion = chart;
+    if(refName === 'cooChartStatus')     cooChartStatus = chart;
+    if(refName === 'cooChartDiscipline') cooChartDiscipline = chart;
+  }
+
+  // -------------------------------------------------------------------------
+  // 8. RESET FILTERS — restore all multi-select sets to default + clear search
+  // -------------------------------------------------------------------------
+  window.resetCooFilters = function(){
+    cooSel.discipline = new Set(['all']);
+    cooSel.country    = new Set(['all']);
+    cooSel.vendor     = new Set(['all']);
+    cooSel.status     = new Set(['Delivered','In Transit','Delayed','Pending']);
+    cooSel.region     = new Set(['SE Asia','Asia','Europe','N. America','S. America','Oceania','Other']);
+
+    // Re-paint chip groups
+    document.querySelectorAll('.coo-chips').forEach(group => {
+      const key = group.dataset.key;
+      if(!key) return;
+      group.querySelectorAll('.coo-chip').forEach(c => {
+        c.classList.toggle('on', cooSel[key].has(c.dataset.v));
+      });
+    });
+    // Re-paint Status & Region rows
+    [['cooStatusList','status'],['cooRegionList','region']].forEach(([id,key]) => {
+      const list = document.getElementById(id);
+      if(list) list.querySelectorAll('.coo-lyr').forEach(r => {
+        r.classList.toggle('on', cooSel[key].has(r.dataset.v));
+      });
+    });
+    // Clear search & sort
+    const s = document.getElementById('cooSearch');     if(s) s.value = '';
+    const sb = document.getElementById('cooSortBy');    if(sb) sb.value = 'status';
+
+    renderCooMap();
+  };
+
+  // -------------------------------------------------------------------------
+  // 8b. FULLSCREEN TOGGLE — mirror DS6 maximize pattern, scoped to COO Map
+  // -------------------------------------------------------------------------
+  let cooIsMax = false;
+  window.cooToggleMax = function(){
+    const ws = document.getElementById('coo-workspace');
+    const btn = document.getElementById('coo-maxbtn');
+    if(!ws) return;
+    cooIsMax = !cooIsMax;
+    if(cooIsMax){
+      ws.classList.add('coo-maximized');
+      // Also tag <body> so legacy engines without :has() can hide siblings.
+      // Header is also hidden via this class so the map gets the full viewport.
+      document.body.classList.add('coo-fullscreen');
+      if(btn){ btn.innerHTML = '&#x229F;'; btn.title = 'Minimize (Esc)'; }
+      document.body.style.overflow = 'hidden';
+    } else {
+      ws.classList.remove('coo-maximized');
+      document.body.classList.remove('coo-fullscreen');
+      if(btn){ btn.innerHTML = '&#x26F6;'; btn.title = 'Maximize (F)'; }
+      document.body.style.overflow = '';
+    }
+    // Resize Leaflet & re-render after the layout settles
+    setTimeout(() => {
+      if(cooMap) cooMap.invalidateSize();
+      renderCooMap();
+    }, 80);
+  };
+  // Escape closes maximized view; "f" toggles when COO Map tab is visible
+  document.addEventListener('keydown', e => {
+    const ws = document.getElementById('coo-workspace');
+    if(!ws) return;
+    if(e.key === 'Escape' && cooIsMax){ cooToggleMax(); return; }
+    const onCooTab = document.getElementById('coomap')?.classList.contains('active');
+    const tag = (e.target && e.target.tagName) || '';
+    const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable);
+    if(onCooTab && !isInput && (e.key === 'f' || e.key === 'F')){
+      e.preventDefault();
+      cooToggleMax();
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 9. TAB ACTIVATION HOOK
+  // -------------------------------------------------------------------------
+  const _prevSwitchTab = window.switchTab;
+  window.switchTab = function(id){
+    if(typeof _prevSwitchTab === 'function') _prevSwitchTab(id);
+    if(id === 'coomap'){
+      if(!cooFiltersInitialized) populateCooFilters();
+      // Defer map init/render until container is visible & laid out
+      setTimeout(() => {
+        initCooMap();
+        if(cooMap) cooMap.invalidateSize();
+        renderCooMap();
+      }, 60);
+    }
+    // Auto-exit maximized state when switching away
+    if(id !== 'coomap' && cooIsMax){ cooToggleMax(); }
+  };
+
+  // If user added/edited packages elsewhere, expose a re-populate helper
+  window.refreshCooMapData = function(){
+    populateCooFilters();
+    if(document.getElementById('coomap') && document.getElementById('coomap').classList.contains('active')){
+      renderCooMap();
+    }
+  };
 
 })();
 
