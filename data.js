@@ -1,6 +1,5 @@
 // Procurement Management System — Salak Unit 7
-// Data file: packages, risks, and project definitions
-// This file is loaded by index.html
+// Data file — loaded by index.html
 
 const defaultProjects = [{"id":1767154263681,"name":"Salak Unit 7 Development","owner":"Star Energy Geothermal Salak","contractor":"Joint Operation: Timas Suplindo - Rekayasa Industri","technologyProvider":"Fuji Electric","contractType":"EPC Lump Sum","contractPrice":109600000,"paymentTerm":"Milestone Payment","startDate":"2024-11-01","finishDate":"2026-12-30","ldDelay":77300,"ldPerformance":11100,"guaranteePower":45,"scopeByOwner":""}];
 
