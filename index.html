@@ -5118,7 +5118,7 @@ async function fetchFromGoogleSheets() {
     }
     
     // Cek apakah URL sudah diisi
-    if (GOOGLE_SHEETS_SYNC.APPS_SCRIPT_URL.includes('PASTE_DEPLOYMENT_ID_DISINI')) {
+    if (GOOGLE_SHEETS_SYNC.APPS_SCRIPT_URL.includes('https://script.google.com/macros/library/d/1VVO4AT1iC53kBTPh2_YvnJlsTPCuMHW7QZLHVyhBBxHqNmPWIk6SPk1A/9')) {
         console.warn('[Sheets Sync] Apps Script URL belum diisi!');
         updateSyncIndicator('error', 'Sheets: URL not configured');
         return false;
