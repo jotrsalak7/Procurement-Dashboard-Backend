@@ -4186,6 +4186,9 @@ body.coo-fullscreen #syncDropdownWrap { display: none !important; }
                             <div class="form-group"><label class="form-label">Contract No</label><input type="text" class="form-input" id="contractNo" placeholder="PO-2024-XXX"></div>
                             <div class="form-group"><label class="form-label">Vendor Name</label><input type="text" class="form-input" id="vendorName" placeholder="Vendor name"></div>
                             <div class="form-group full"><label class="form-label">Country of Origin</label><select class="form-select" id="coo"><option value="">Select country</option></select></div>
+                            <div class="form-group"><label class="form-label">PO Delivery Date (ETD)</label><input type="date" class="form-input" id="poDeliveryDate" title="Tanggal pengiriman yang disepakati dalam PO"></div>
+                            <div class="form-group"><label class="form-label">Equipment Group</label><select class="form-select" id="equipmentGroup"><option value="">Select group</option><option value="Major Equipment">Major Equipment</option><option value="Bulk Material">Bulk Material</option><option value="General Material">General Material</option><option value="Others">Others</option></select></div>
+                            <div class="form-group full"><label class="form-label">Expeditor</label><input type="text" class="form-input" id="expeditor" placeholder="Nama expeditor incharge untuk paket ini"></div>
                         </div>
                     </div>
                     <div class="form-section" id="milestonesSection"><div id="milestonesFields"></div></div>
@@ -5044,7 +5047,7 @@ body.coo-fullscreen #syncDropdownWrap { display: none !important; }
 // ─── KONFIGURASI GOOGLE SHEETS SYNC ────────────────────────
 const GOOGLE_SHEETS_SYNC = {
     // ★★★ GANTI URL INI dengan URL deployment Apps Script kamu ★★★
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzSuxiPSSJEhoey--YOCB0QOboG45181jMDHUGTesGIKUBuKuTHeCqvAa7WIqfhxPlmYw/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyspSCx7nSQt81d5Btoc17Ymm15uaR0tKZ05fvVZAy7QFjjSFoyKblRJi5Dci3imuGq9A/exec',
     
     // Aktifkan/nonaktifkan sync
     ENABLED: true,
@@ -7534,6 +7537,9 @@ function afterProjectSave(proj) {
                         <div class="detail-item ${p.contractNo ? 'highlight' : ''}"><label>Contract/PO Number</label><span>${p.contractNo || '-'}</span></div>
                         <div class="detail-item"><label>Vendor Name</label><span>${p.vendorName || '-'}</span></div>
                         <div class="detail-item"><label>Country of Origin</label><span>${p.coo || '-'}</span></div>
+                        <div class="detail-item ${p.poDeliveryDate ? 'highlight' : ''}"><label>PO Delivery Date (ETD)</label><span>${p.poDeliveryDate || '-'}</span></div>
+                        <div class="detail-item"><label>Equipment Group</label><span>${p.equipmentGroup || '-'}</span></div>
+                        <div class="detail-item"><label>Expeditor</label><span>${p.expeditor || '-'}</span></div>
                     </div>
                 </div>
                 
@@ -7749,6 +7755,9 @@ function afterProjectSave(proj) {
             document.getElementById('contractNo').value=p.contractNo||'';
             document.getElementById('vendorName').value=p.vendorName||'';
             document.getElementById('coo').value=p.coo||'';
+            document.getElementById('poDeliveryDate').value=p.poDeliveryDate||'';
+            document.getElementById('equipmentGroup').value=p.equipmentGroup||'';
+            document.getElementById('expeditor').value=p.expeditor||'';
             milestoneLabels.forEach(m=>{
                 const mile = (p.milestones||{})[m.key] || {};
                 document.getElementById(m.key+'Plan').value=mile.plan||'';
@@ -7820,6 +7829,9 @@ function afterProjectSave(proj) {
                 contractNo:document.getElementById('contractNo').value,
                 vendorName:document.getElementById('vendorName').value,
                 coo:document.getElementById('coo').value,
+                poDeliveryDate:document.getElementById('poDeliveryDate').value,
+                equipmentGroup:document.getElementById('equipmentGroup').value,
+                expeditor:document.getElementById('expeditor').value,
                 milestones:{},
                 engineering:{
                     required:document.getElementById('engRequired').checked,
@@ -8591,7 +8603,7 @@ function afterProjectSave(proj) {
                 applyStyles(ws1, 1, 1, 14);
                 XLSX.utils.book_append_sheet(wb, ws1, 'Projects');
                 
-                // ===== SHEET 2: Packages (Complete 58 cols) =====
+                // ===== SHEET 2: Packages (Complete 62 cols) =====
                 const pkgTitle = [(proj?.name || 'Project') + ' — Procurement Packages (' + pkgs.length + ' items)'];
                 // Group headers (row 2)
                 const pkgGroupRow = [
@@ -8600,7 +8612,8 @@ function afterProjectSave(proj) {
                     '','ENGINEERING','','','','','','','',
                     '','MANUFACTURE','','','','','','',
                     '','FAT','','',
-                    '','DELIVERY','','','','','','','','','',''
+                    '','DELIVERY','','','','','','','','','','',
+                    'PO INFO','',''
                 ];
                 const pkgHeader = [
                     'No','ID','Project ID','Initiation','Discipline','Area','RFQ No','Package Name','Description','Contract No','Vendor Name','COO',
@@ -8616,7 +8629,8 @@ function afterProjectSave(proj) {
                     'Incoterm','Location','Plan Delivery 100%','Actual Delivery 100%',
                     'Ship. Status Date','Ship. Plan (%)','Ship. Actual (%)',
                     'Plan Material@Site','Actual Material@Site',
-                    'Material Status Date','Material Plan (%)','Material Actual (%)'
+                    'Material Status Date','Material Plan (%)','Material Actual (%)',
+                    'PO Delivery Date (ETD)','Equipment Group','Expeditor'
                 ];
                 const pkgRows = pkgs.map((p, idx) => {
                     const ms = p.milestones || {}, eng = p.engineering || {}, mf = p.manufacture || {}, d = p.delivery || {};
@@ -8638,7 +8652,8 @@ function afterProjectSave(proj) {
                         d.incoterm||'', d.deliveryLocation||'', d.planDelivery100||'', d.actualDelivery100||'',
                         d.shippingStatusDate||'', d.shippingStatusPlan ?? '', d.shippingStatus ?? '',
                         d.planMaterialAtSite100||'', d.actualMaterialAtSite100||'',
-                        d.materialStatusDate||'', d.materialAtSitePlan ?? '', d.materialReceivedActual ?? ''
+                        d.materialStatusDate||'', d.materialAtSitePlan ?? '', d.materialReceivedActual ?? '',
+                        p.poDeliveryDate||'', p.equipmentGroup||'', p.expeditor||''
                     ];
                 });
                 const ws2 = XLSX.utils.aoa_to_sheet([[pkgTitle[0]], pkgGroupRow, pkgHeader, ...pkgRows]);
@@ -8662,7 +8677,8 @@ function afterProjectSave(proj) {
                     {wch:12},{wch:12},{wch:14},{wch:22},
                     {wch:8},{wch:16},{wch:13},{wch:13},
                     {wch:12},{wch:10},{wch:10},
-                    {wch:14},{wch:14},{wch:12},{wch:10},{wch:10}
+                    {wch:14},{wch:14},{wch:12},{wch:10},{wch:10},
+                    {wch:14},{wch:18},{wch:22}
                 ];
                 ws2['!rows'] = [{hpt:28},{hpt:20},{hpt:24}];
                 ws2['!autofilter'] = { ref: XLSX.utils.encode_cell({r:2,c:0}) + ':' + XLSX.utils.encode_cell({r:2+pkgRows.length,c:pkgHeader.length-1}) };
@@ -8872,6 +8888,7 @@ function afterProjectSave(proj) {
                     'del_shippingStatusDate','del_shippingStatusPlan','del_shippingStatus',
                     'del_planMaterialAtSite100','del_actualMaterialAtSite100',
                     'del_materialStatusDate','del_materialAtSitePlan','del_materialReceivedActual',
+                    'poDeliveryDate','equipmentGroup','expeditor',
                     'lastModified'
                 ];
                 const pkgRows = pkgs.map(p => {
@@ -8903,6 +8920,7 @@ function afterProjectSave(proj) {
                         fmtDate(d.planMaterialAtSite100), fmtDate(d.actualMaterialAtSite100),
                         fmtDate(d.materialStatusDate),
                         d.materialAtSitePlan ?? '', d.materialReceivedActual ?? '',
+                        fmtDate(p.poDeliveryDate), p.equipmentGroup||'', p.expeditor||'',
                         now
                     ];
                 });
@@ -8915,6 +8933,7 @@ function afterProjectSave(proj) {
                     ...Array(4).fill({wch:12}),{wch:8},          // mfg
                     {wch:12},{wch:12},{wch:12},{wch:22},          // FAT
                     {wch:8},{wch:16},{wch:12},{wch:12},{wch:12},{wch:8},{wch:8},{wch:12},{wch:12},{wch:12},{wch:8},{wch:8}, // delivery
+                    {wch:14},{wch:18},{wch:22},  // PO Delivery Date, Equipment Group, Expeditor
                     {wch:24}
                 ];
                 ws3['!rows'] = [{hpt:22}];
