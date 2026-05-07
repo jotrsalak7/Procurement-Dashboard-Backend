@@ -5047,7 +5047,7 @@ body.coo-fullscreen #syncDropdownWrap { display: none !important; }
 // ─── KONFIGURASI GOOGLE SHEETS SYNC ────────────────────────
 const GOOGLE_SHEETS_SYNC = {
     // ★★★ GANTI URL INI dengan URL deployment Apps Script kamu ★★★
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyspSCx7nSQt81d5Btoc17Ymm15uaR0tKZ05fvVZAy7QFjjSFoyKblRJi5Dci3imuGq9A/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxyYC0J_YGZAECio7Q66A831GpvtW9kIKh-X33DdfsDlO7kWKvhNDyhuJ_H84mR-C2FfA/exec',
     
     // Aktifkan/nonaktifkan sync
     ENABLED: true,
@@ -5118,7 +5118,7 @@ async function fetchFromGoogleSheets() {
     }
     
     // Cek apakah URL sudah diisi
-    if (GOOGLE_SHEETS_SYNC.APPS_SCRIPT_URL.includes('https://script.google.com/macros/s/AKfycbxyYC0J_YGZAECio7Q66A831GpvtW9kIKh-X33DdfsDlO7kWKvhNDyhuJ_H84mR-C2FfA/exec')) {
+    if (GOOGLE_SHEETS_SYNC.APPS_SCRIPT_URL.includes('https://script.google.com/macros/library/d/1VVO4AT1iC53kBTPh2_YvnJlsTPCuMHW7QZLHVyhBBxHqNmPWIk6SPk1A/9')) {
         console.warn('[Sheets Sync] Apps Script URL belum diisi!');
         updateSyncIndicator('error', 'Sheets: URL not configured');
         return false;
@@ -5536,6 +5536,124 @@ function afterRiskSave(risk) {
 function afterProjectSave(proj) {
     pushToSheets('upsertProject', proj);
 }
+
+// ─── DIAGNOSTIC: debugSync() ─────────────────────────────────
+// Panggil dari browser console: debugSync()
+// Atau tekan Ctrl+Shift+D di dashboard
+async function debugSync() {
+    var url = GOOGLE_SHEETS_SYNC.APPS_SCRIPT_URL;
+    var report = [];
+    report.push('═══ SYNC DIAGNOSTIC ═══');
+    report.push('URL: ' + url);
+    report.push('Enabled: ' + GOOGLE_SHEETS_SYNC.ENABLED);
+    report.push('');
+
+    // Step 1: Ping
+    report.push('── Step 1: PING ──');
+    try {
+        var t0 = Date.now();
+        var pingResp = await fetch(url + '?action=ping&t=' + Date.now(), { method: 'GET', redirect: 'follow' });
+        var pingMs = Date.now() - t0;
+        var pingText = await pingResp.text();
+        report.push('Status: ' + pingResp.status + ' (' + pingMs + 'ms)');
+        report.push('Response: ' + pingText.substring(0, 200));
+        try { var pj = JSON.parse(pingText); report.push('Version: ' + (pj.version || 'unknown')); } catch(e) { report.push('⚠ Response is NOT JSON — possible auth/deploy issue'); }
+    } catch(e) {
+        report.push('✗ PING FAILED: ' + e.message);
+        report.push('→ Check: URL correct? Deployment active? "Anyone" access?');
+    }
+
+    // Step 2: getAll
+    report.push('');
+    report.push('── Step 2: GET ALL DATA ──');
+    try {
+        var t1 = Date.now();
+        var getResp = await fetch(url + '?action=getAll&t=' + Date.now(), { method: 'GET', redirect: 'follow' });
+        var getMs = Date.now() - t1;
+        var getText = await getResp.text();
+        report.push('Status: ' + getResp.status + ' (' + getMs + 'ms)');
+        report.push('Response length: ' + getText.length + ' chars');
+        try {
+            var gj = JSON.parse(getText);
+            if (gj.error) {
+                report.push('✗ Apps Script ERROR: ' + gj.error);
+            } else if (gj.data) {
+                report.push('✓ Projects: ' + (gj.counts?.projects || 0));
+                report.push('✓ Packages: ' + (gj.counts?.packages || 0));
+                report.push('✓ Risks: ' + (gj.counts?.risks || 0));
+                report.push('Version: ' + (gj.version || 'unknown'));
+                // Check v3.1 fields
+                if (gj.data.packages && gj.data.packages.length > 0) {
+                    var sample = gj.data.packages[0];
+                    report.push('Sample pkg: ' + (sample.packageName || ''));
+                    report.push('  poDeliveryDate: ' + JSON.stringify(sample.poDeliveryDate));
+                    report.push('  equipmentGroup: ' + JSON.stringify(sample.equipmentGroup));
+                    report.push('  expeditor: ' + JSON.stringify(sample.expeditor));
+                }
+            } else {
+                report.push('⚠ No data in response');
+            }
+        } catch(e) {
+            report.push('⚠ NOT JSON: ' + getText.substring(0, 300));
+            report.push('→ This usually means: wrong URL, or deploy with "Anyone with Google account" instead of "Anyone"');
+        }
+    } catch(e) {
+        report.push('✗ GET FAILED: ' + e.message);
+    }
+
+    // Step 3: Test POST
+    report.push('');
+    report.push('── Step 3: TEST POST (upsert + delete test pkg) ──');
+    try {
+        var testPkg = { action: 'upsertPackage', data: { id: 9999999, projectId: 1767154263681, packageName: 'SYNC_TEST_DELETE_ME', discipline: 'Test', area: 'Test', poDeliveryDate: '2099-01-01', equipmentGroup: 'Test', expeditor: 'Test', milestones: {}, engineering: { required: false }, manufacture: {}, delivery: {} } };
+        var postResp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(testPkg), redirect: 'follow' });
+        var postText = await postResp.text();
+        report.push('POST Status: ' + postResp.status);
+        try {
+            var pj2 = JSON.parse(postText);
+            if (pj2.error) { report.push('✗ POST ERROR: ' + pj2.error); }
+            else { report.push('✓ POST OK: ' + pj2.status + ' (row ' + pj2.row + ')'); }
+        } catch(e) { report.push('⚠ POST response NOT JSON: ' + postText.substring(0, 200)); }
+        // Cleanup
+        var delResp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'deletePackage', id: 9999999 }), redirect: 'follow' });
+        var delText = await delResp.text();
+        report.push('Cleanup: ' + delText.substring(0, 100));
+    } catch(e) {
+        report.push('✗ POST FAILED: ' + e.message);
+    }
+
+    // Step 4: Cache status
+    report.push('');
+    report.push('── Step 4: CACHE STATUS ──');
+    var cacheTs = localStorage.getItem(GOOGLE_SHEETS_SYNC.CACHE_TS_KEY);
+    if (cacheTs) {
+        var age = Math.round((Date.now() - parseInt(cacheTs)) / 1000);
+        report.push('Cache age: ' + age + 's (max: ' + (GOOGLE_SHEETS_SYNC.CACHE_DURATION/1000) + 's)');
+        report.push(age < GOOGLE_SHEETS_SYNC.CACHE_DURATION/1000 ? '→ Cache ACTIVE (will serve cached data)' : '→ Cache EXPIRED (will fetch fresh)');
+    } else {
+        report.push('No cache');
+    }
+
+    // Step 5: localStorage status
+    report.push('');
+    report.push('── Step 5: LOCAL DATA ──');
+    report.push('Packages in memory: ' + packages.length);
+    report.push('Projects in memory: ' + projects.length);
+    report.push('Risks in memory: ' + risks.length);
+
+    var fullReport = report.join('\n');
+    console.log(fullReport);
+    
+    // Also show as alert for easy viewing
+    alert(fullReport);
+    
+    return fullReport;
+}
+
+// Keyboard shortcut: Ctrl+Shift+D to run diagnostic
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') { e.preventDefault(); debugSync(); }
+});
 
         document.addEventListener('DOMContentLoaded', () => { initApp_withSync(); });
 
