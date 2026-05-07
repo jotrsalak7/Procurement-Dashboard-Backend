@@ -8880,8 +8880,8 @@ function afterProjectSave(proj) {
                     'ms_finalNegotiation_plan','ms_finalNegotiation_actual',
                     'ms_issuePO_plan','ms_issuePO_actual',
                     'ms_kom_plan','ms_kom_actual',
-                    'eng_required','eng_planStart','eng_planFinish','eng_actualStart','eng_actualFinish','eng_actualProgress',
-                    'mfg_planStart','mfg_planFinish','mfg_actualStart','mfg_actualFinish','mfg_actualProgress',
+                    'eng_required','eng_planStart','eng_planFinish','eng_actualStart','eng_actualFinish','eng_statusDate','eng_planProgress','eng_actualProgress','eng_remark',
+                    'mfg_planStart','mfg_planFinish','mfg_actualStart','mfg_actualFinish','mfg_statusDate','mfg_planProgress','mfg_actualProgress','mfg_remark',
                     'mfg_planFAT','mfg_actualFAT','mfg_fatResult','mfg_fatRemarks',
                     'del_incoterm','del_deliveryLocation',
                     'del_planDelivery100','del_actualDelivery100',
@@ -8907,10 +8907,10 @@ function afterProjectSave(proj) {
                         eng.required ? 'TRUE' : 'FALSE',
                         fmtDate(eng.planStart), fmtDate(eng.planFinish),
                         fmtDate(eng.actualStart), fmtDate(eng.actualFinish),
-                        eng.actualProgress ?? '',
+                        fmtDate(eng.statusDate), eng.planProgress ?? '', eng.actualProgress ?? '', eng.remark||'',
                         fmtDate(mf.planStart), fmtDate(mf.planFinish),
                         fmtDate(mf.actualStart), fmtDate(mf.actualFinish),
-                        mf.actualProgress ?? '',
+                        fmtDate(mf.statusDate), mf.planProgress ?? '', mf.actualProgress ?? '', mf.remark||'',
                         fmtDate(mf.planFAT), fmtDate(mf.actualFAT),
                         mf.fatResult||'', mf.fatRemarks||'',
                         d.incoterm||'', d.deliveryLocation||'',
@@ -8929,8 +8929,8 @@ function afterProjectSave(proj) {
                     {wch:16},{wch:16},{wch:8},{wch:14},{wch:8},{wch:36},{wch:22},
                     {wch:24},{wch:24},{wch:28},{wch:10},
                     ...Array(14).fill({wch:12}),  // ms dates
-                    {wch:8},...Array(4).fill({wch:12}),{wch:8},  // eng
-                    ...Array(4).fill({wch:12}),{wch:8},          // mfg
+                    {wch:8},...Array(4).fill({wch:12}),{wch:12},{wch:8},{wch:8},{wch:22},  // eng (9 cols)
+                    ...Array(4).fill({wch:12}),{wch:12},{wch:8},{wch:8},{wch:22},          // mfg (8 cols)
                     {wch:12},{wch:12},{wch:12},{wch:22},          // FAT
                     {wch:8},{wch:16},{wch:12},{wch:12},{wch:12},{wch:8},{wch:8},{wch:12},{wch:12},{wch:12},{wch:8},{wch:8}, // delivery
                     {wch:14},{wch:18},{wch:22},  // PO Delivery Date, Equipment Group, Expeditor
@@ -9449,7 +9449,11 @@ function afterProjectSave(proj) {
                         materialStatusDate:     p.del_materialStatusDate || '',
                         materialAtSitePlan:     p.del_materialAtSitePlan !== '' ? Number(p.del_materialAtSitePlan) : 0,
                         materialReceivedActual: p.del_materialReceivedActual !== '' ? Number(p.del_materialReceivedActual) : 0
-                    }
+                    },
+                    // v3.1 fields
+                    poDeliveryDate: p.poDeliveryDate || '',
+                    equipmentGroup: p.equipmentGroup || '',
+                    expeditor: p.expeditor || ''
                 };
             });
         }
