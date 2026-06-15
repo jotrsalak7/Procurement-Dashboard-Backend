@@ -3804,7 +3804,7 @@ body.coo-fullscreen #syncDropdownWrap { display: none !important; }
     <div class="s-lbl">Display Layers <span style="font-weight:400;color:var(--ink3);font-size:8.5px">(multi-select)</span></div>
     <div class="lyr-list" id="ds6-lyrList">
       <div class="lyr on" data-l="fat"><span class="ldot" style="background:var(--cfat)"></span>FAT Date<span class="lck">✓</span></div>
-      <div class="lyr on" data-l="po"><span class="ldot" style="background:var(--cpo)"></span>PO Date<span class="lck">✓</span></div>
+      <div class="lyr on" data-l="po"><span class="ldot" style="background:var(--cpo)"></span>PO Delivery Date (ETD)<span class="lck">✓</span></div>
       <div class="lyr on" data-l="del"><span class="ldot" style="background:var(--cdel)"></span>Plan Delivery (ETD)<span class="lck">✓</span></div>
       <div class="lyr on" data-l="site"><span class="ldot" style="background:var(--csite)"></span>Plan @Site (ETA)<span class="lck">✓</span></div>
       <div class="lyr on" data-l="actual"><span class="ldot" style="background:var(--cact);border:1px solid #888"></span>Actual Del / @Site<span class="lck">✓</span></div>
@@ -3895,7 +3895,7 @@ body.coo-fullscreen #syncDropdownWrap { display: none !important; }
     <span style="font-size:9.5px;font-weight:700;color:var(--ink3);margin-right:2px">LEGEND:</span>
     <span class="le"><span class="le-tri" style="color:var(--cfat)"></span>Plan FAT</span>
     <span class="le"><span class="le-tri" style="color:#2D6A2D"></span>Actual FAT</span>
-    <span class="le"><span class="le-tri" style="color:var(--cpo)"></span>PO Date</span>
+    <span class="le"><span class="le-tri" style="color:var(--cpo)"></span>PO Delivery Date (ETD)</span>
     <span class="le"><span class="le-tri" style="color:var(--cdel)"></span>Plan Delivery</span>
     <span class="le"><span class="le-tri" style="color:var(--csite)"></span>Plan @Site</span>
     <span class="le"><span class="le-dot" style="color:var(--cact)"></span>Actual Del.</span>
@@ -10732,6 +10732,8 @@ function adaptPkg(p) {
     const ms = p.milestones || {};
     const poActual = !!(ms.issuePO && ms.issuePO.actual);
     const poDate = poActual ? ms.issuePO.actual : (ms.issuePO ? ms.issuePO.plan : '');
+    // PO Delivery Date (ETD): taken directly from the package field, not from milestones.issuePO
+    const poDeliveryDate = p.poDeliveryDate || '';
     return {
         id: p.id,
         _ref: p, // keep reference to original
@@ -10746,6 +10748,7 @@ function adaptPkg(p) {
         location: d.deliveryLocation || '',
         poDate: poDate,
         poActual: poActual,
+        poDeliveryDate: poDeliveryDate, // PO Delivery Date (ETD) per package
         mfgStart: m.planStart || '',
         mfgEnd: m.planFinish || '',
         mfgActualStart: m.actualStart || '',
@@ -10981,7 +10984,7 @@ function render(){
       lastDisc=p.discipline;
     }
     var pFP=px(p.fatPlan),pFA=px(p.fatActual);
-    var pPO=px(p.poDate);
+    var pPO=px(p.poDeliveryDate);  // PO Delivery Date (ETD)
     var pDP=px(p.delPlan),pDA=px(p.delActual);
     var pSP=px(p.sitePlan),pSA=px(p.siteActual);
     var pFC=px(fcDel(p));
@@ -10992,7 +10995,7 @@ function render(){
     lHTML+='<div class="c-sub">'+(p.vendor||'—')+' · '+(p.coo||'—')+'</div>';
     lHTML+='<div>'+badge(p)+'</div></div>';
     lHTML+='<div class="c-in"><div class="ir"><span class="ik">Incoterm</span><span class="iv">'+(p.incoterm||'—')+'</span></div>';
-    lHTML+='<div class="ir"><span class="ik">PO</span><span class="iv">'+fmtS(p.poDate)+(p.poActual?'':' ▹')+'</span></div>';
+    lHTML+='<div class="ir"><span class="ik">PO Del</span><span class="iv">'+(p.poDeliveryDate?fmtS(p.poDeliveryDate):'—')+'</span></div>';
     lHTML+='<div class="ir"><span class="ik">Del Plan</span><span class="iv">'+fmtS(p.delPlan)+'</span></div>';
     lHTML+='<div class="ir"><span class="ik">@Site</span><span class="iv">'+fmtS(p.sitePlan)+'</span></div></div>';
     lHTML+='<div class="c-mf"><div class="mn"><span class="mp">Pl '+p.mfgPlanPct+'%</span><span class="ma">'+p.mfgPct+'%</span></div>';
@@ -11007,7 +11010,7 @@ function render(){
     tHTML+=MONTHS.map(function(m,mi){return '<div class="gl" style="left:'+m.spx+'px;width:'+m.wpx+'px;background:'+(mi%2?'#FAFAF8':'#F5F4F0')+'"></div>';}).join('');
     tHTML+='<div class="tday" style="left:'+TODAY_PX+'px"></div>';
     if(layers.has('fat')){ tHTML+=MK(pFP,y1,'var(--cfat)',fmtS(p.fatPlan),'Plan FAT: '+fmt(p.fatPlan)); if(pFA!==null) tHTML+=MK(pFA,y1,'#2D6A2D',fmtS(p.fatActual),'Actual FAT: '+fmt(p.fatActual)+' — '+(p.fatResult||'')); }
-    if(layers.has('po')&&pPO!==null) tHTML+=MKpct(pPO,y2,'var(--cpo)',fmtS(p.poDate),p.mfgPct,'PO Date: '+fmt(p.poDate)+(p.poActual?' (Issued)':' (Plan)')+'\nMfg: '+p.mfgPct+'%');
+    if(layers.has('po')&&pPO!==null) tHTML+=MKpct(pPO,y2,'var(--cpo)',fmtS(p.poDeliveryDate),p.mfgPct,'PO Delivery Date (ETD): '+fmt(p.poDeliveryDate)+'\nMfg: '+p.mfgPct+'%');
     if(layers.has('del')) tHTML+=MK(pDP,y3,'var(--cdel)',fmtS(p.delPlan),'Plan Delivery: '+fmt(p.delPlan)+'\nIncoterm: '+p.incoterm+'\nLoc: '+p.location);
     if(layers.has('actual')&&pDA!==null) tHTML+=MKA(pDA,y3,'var(--cact)','Actual Delivery: '+fmt(p.delActual));
     if(layers.has('site')) tHTML+=MK(pSP,y4,'var(--csite)',fmtS(p.sitePlan),'Plan @Site: '+fmt(p.sitePlan));
@@ -11245,7 +11248,7 @@ function prAutoRange(){
   var push = function(s){ if(s){ var d=new Date(s); if(!isNaN(d)) allDates.push(d); }};
   list.forEach(function(p){
     if(layers.has('fat'))    { push(p.fatPlan); push(p.fatActual); }
-    if(layers.has('po'))     { push(p.poDate); }
+    if(layers.has('po'))     { push(p.poDeliveryDate); }
     if(layers.has('del'))    { push(p.delPlan); push(p.delActual); }
     if(layers.has('site'))   { push(p.sitePlan); push(p.siteActual); }
     if(layers.has('actual')) { push(p.delActual); push(p.siteActual); }
@@ -11325,7 +11328,7 @@ function execPrint(){
   var lastDisc='',rowsHTML='';
   list.forEach(function(p,idx){
     if(p.discipline!==lastDisc){rowsHTML+='<tr class="disc-sep"><td colspan="4">'+p.discipline+'</td></tr>';lastDisc=p.discipline;}
-    var pFP=pPx(p.fatPlan),pFA=pPx(p.fatActual),pPO=pPx(p.poDate);
+    var pFP=pPx(p.fatPlan),pFA=pPx(p.fatActual),pPO=pPx(p.poDeliveryDate);  // PO Delivery Date (ETD)
     var pDP=pPx(p.delPlan),pDA=pPx(p.delActual);
     var pSP=pPx(p.sitePlan),pSA=pPx(p.siteActual);
     var pFC=pPx(fcDel(p));
@@ -11341,7 +11344,7 @@ function execPrint(){
     rowsHTML+='<span style="font-size:'+f75+'px;font-weight:700;text-transform:uppercase;padding:1.5px 5px;border-radius:2px;background:'+bdColor+';color:#fff">'+bdLabel+'</span></td>';
     rowsHTML+='<td style="width:'+INFO_W+'px;padding:3px 5px;font-size:'+f9+'px;vertical-align:middle;border-right:1px solid #DDD;background:#FAFAF8">';
     rowsHTML+='<div style="display:flex;justify-content:space-between"><span style="color:#888">Inco</span><span style="font-weight:600">'+(p.incoterm||'\u2014')+'</span></div>';
-    rowsHTML+='<div style="display:flex;justify-content:space-between"><span style="color:#888">PO</span><span style="font-weight:600">'+fmtPS2(p.poDate)+'</span></div>';
+    rowsHTML+='<div style="display:flex;justify-content:space-between"><span style="color:#888">PO Del</span><span style="font-weight:600">'+fmtPS2(p.poDeliveryDate)+'</span></div>';
     rowsHTML+='<div style="display:flex;justify-content:space-between"><span style="color:#888">Del</span><span style="font-weight:600">'+fmtPS2(p.delPlan)+'</span></div>';
     rowsHTML+='<div style="display:flex;justify-content:space-between"><span style="color:#888">@Site</span><span style="font-weight:600">'+fmtPS2(p.sitePlan)+'</span></div></td>';
     rowsHTML+='<td style="width:'+MFG_W+'px;padding:3px 5px;vertical-align:middle;border-right:1px solid #DDD;background:#FAFAF8">';
@@ -11353,7 +11356,7 @@ function execPrint(){
     rowsHTML+=pMonths.map(function(m,mi){var sx=Math.round(((m.first<minD?minD:m.first)-minD)/86400000)*P_DPX;return'<div style="position:absolute;left:'+sx+'px;top:0;width:'+(m.days*P_DPX)+'px;height:100%;background:'+(mi%2?'#FAFAF8':'#F5F4F0')+';border-right:1px solid #DDD"></div>';}).join('');
     if(todayPx!==null&&todayPx>=0) rowsHTML+='<div style="position:absolute;left:'+todayPx+'px;top:0;bottom:0;width:1.5px;background:'+C.gold+';z-index:8"></div>';
     if(layers.has('fat')){ rowsHTML+=MKt(pFP,y1,C.fat,fmtPS2(p.fatPlan),'Plan FAT'); if(pFA!==null) rowsHTML+=MKt(pFA,y1,C.fatA,fmtPS2(p.fatActual),'Actual FAT'); }
-    if(layers.has('po')&&pPO!==null) rowsHTML+=MKt(pPO,y2r,C.po,fmtPS2(p.poDate),'PO Date');
+    if(layers.has('po')&&pPO!==null) rowsHTML+=MKt(pPO,y2r,C.po,fmtPS2(p.poDeliveryDate),'PO Delivery Date (ETD)');
     if(layers.has('del')) rowsHTML+=MKt(pDP,y2r,C.del,fmtPS2(p.delPlan),'Plan Delivery');
     if(layers.has('actual')&&pDA!==null) rowsHTML+=MKd(pDA,y2r,C.actD);
     if(layers.has('site')) rowsHTML+=MKt(pSP,y3r,C.site,fmtPS2(p.sitePlan),'Plan @Site');
@@ -11370,7 +11373,7 @@ function execPrint(){
 
   var legendItems=[];
   if(layers.has('fat'))     legendItems.push({col:C.fat,lbl:'Plan FAT'},{col:C.fatA,lbl:'Actual FAT'});
-  if(layers.has('po'))      legendItems.push({col:C.po,lbl:'PO Date'});
+  if(layers.has('po'))      legendItems.push({col:C.po,lbl:'PO Delivery Date (ETD)'});
   if(layers.has('del'))     legendItems.push({col:C.del,lbl:'Plan Delivery'});
   if(layers.has('site'))    legendItems.push({col:C.site,lbl:'Plan @Site'});
   if(layers.has('actual'))  legendItems.push({col:C.actD,lbl:'Actual Del.',dot:true},{col:C.actS,lbl:'Actual @Site',dot:true});
